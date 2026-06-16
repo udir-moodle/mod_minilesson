@@ -1,0 +1,191 @@
+{
+    "items": [
+        {
+            "itemnumber": 0,
+            "prompt": "You are an expert educational content designer who creates engaging Reveal.js presentations in markdown format. \nYour task is to create a Reveal.js presentation in markdown format with between 1 and 5 slides.\n\nFollow these exact rules:\n\n1. The output must include:\n   - slidesmarkdown \u2014 a Reveal.js markdown presentation\n   - data1 \u2014 a 1-dimensional array of individual image descriptions that will be used to generate images.  \n\n2. Each slide includes **only a title and one image**.  \n   - Choose a short, clear slide title based on the image description.  \n   - Image filenames must be numbered sequentially: \"1.png\", \"2.png\", etc.  \n   - Never include more than one image per slide.  \n   - The presentation must NOT start with '---'. The first line of slidesmarkdown must be the heading of Slide 1.\n\n3. Build `data1` from the following five image description variables:  \n   `{\"{img_desc1}\", \"{img_desc2}\", \"{img_desc3}\", \"{img_desc4}\", \"{img_desc5}\"}`  \n   - Prepend each with `({imagestyle}) `.  \n   - **If any image description is empty, do NOT include it in `data1`.** and do NOT make a slide for it\n   - The order in `data1` should correspond to the slide numbers (first non-empty description \u2192 1.png, second non-empty \u2192 2.png, etc.).\n\n\n",
+            "generatemethod": "generate",
+            "generatefields": [
+                {
+                    "name": "slidesmarkdown",
+                    "generate": 1,
+                    "mapping": ""
+                },
+                {
+                    "name": "slidestheme",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "slidesfontsize",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data1",
+                    "generate": 1,
+                    "mapping": ""
+                },
+                {
+                    "name": "data2",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data3",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data4",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data5",
+                    "generate": 0,
+                    "mapping": ""
+                }
+            ],
+            "generatefileareas": [
+                {
+                    "name": "customfile1",
+                    "generate": 1,
+                    "mapping": "data1"
+                }
+            ],
+            "overallimagecontext": "--",
+            "promptfields": [
+                {
+                    "name": "img_desc1",
+                    "mapping": "user_text"
+                },
+                {
+                    "name": "img_desc2",
+                    "mapping": "user_keywords"
+                },
+                {
+                    "name": "img_desc3",
+                    "mapping": "user_customdata1"
+                },
+                {
+                    "name": "img_desc4",
+                    "mapping": "user_customdata2"
+                },
+                {
+                    "name": "img_desc5",
+                    "mapping": "user_customdata3"
+                },
+                {
+                    "name": "imagestyle",
+                    "mapping": "user_level"
+                }
+            ]
+        }
+    ],
+    "lessonTitle": "Image Slides (5)",
+    "lessonDescription": "Enter 5 image descriptions and an image style to get 5 image slides",
+    "uniqueid": "690b5e695b235",
+    "version": "3",
+    "fieldmappings": {
+        "target_language": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_topic": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_level": {
+            "enabled": true,
+            "title": "Image Style",
+            "description": "",
+            "type": "dropdown",
+            "options": [
+                "Flat vector illustration",
+                "Cartoon",
+                "Photorealistic",
+                "Infographic",
+                "Line drawing",
+                "Digital painting",
+                "3D Render"
+            ]
+        },
+        "user_text": {
+            "enabled": true,
+            "title": "Image description 1",
+            "description": "",
+            "type": "textarea"
+        },
+        "user_keywords": {
+            "enabled": true,
+            "title": "Image description 2",
+            "description": "",
+            "type": "textarea"
+        },
+        "user_customdata1": {
+            "enabled": true,
+            "title": "Image description 3",
+            "description": "",
+            "type": "textarea"
+        },
+        "user_customdata2": {
+            "enabled": true,
+            "title": "Image description 4",
+            "description": "",
+            "type": "textarea"
+        },
+        "user_customdata3": {
+            "enabled": true,
+            "title": "Image description 5",
+            "description": "",
+            "type": "textarea"
+        },
+        "user_customdata4": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata5": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata6": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata7": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata8": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata9": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata10": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        }
+    },
+    "tags": []
+}

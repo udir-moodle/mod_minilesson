@@ -1,0 +1,18 @@
+{{> mod_minilesson/questionheader}}
+
+{{#audiorecorder}}
+    <div id="{{uniqueid}}_correctanswer" class="mod_minilesson_spokenandcorrect {{rtl}}" > ---- </div>
+    {{> mod_minilesson/ttrecorder}}
+{{/audiorecorder}}
+{{#textinput}}
+    <div class="text-center">
+        <p>
+            <input type="text" name="textinput" id="textinput" class="textinput_responsetype" autocomplete="off">
+        </p>
+        <button class="btn btn-check-button-primary shortanswer_ctrl-btn shortanswer_check_btn">
+            <i class="fa fa-check"></i> {{#str}}check, mod_minilesson{{/str}}
+        </button>
+    </div>
+{{/textinput}}
+
+{{> mod_minilesson/questionfooter}}

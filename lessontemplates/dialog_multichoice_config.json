@@ -1,0 +1,410 @@
+{
+    "items": [
+        {
+            "itemnumber": 0,
+            "prompt": "Create the following outputs based on the 4 dialogs and their matching situations:\n\n1. data5 \u2014 a 1-dimensional array of 4 detailed image prompts.  \n   - Each prompt must be based on one dialog and its situation.  \n   - Each prompt must specify the image style \"{imagestyle}\".  \n   - Each image must depict a man and a woman.  \n   - Images must contain no text, captions, titles, or speech bubbles.\n\n2. ttsdialog, data2, data3, data4 \u2014 four 1-dimensional string arrays.  \n   - To create each array split one dialog on newline characters into an array of strings.  \n   - Assign dialog1's array \u2192 ttsdialog, dialog2's array \u2192 data2, dialog3's array \u2192 data3, dialog4's array \u2192 data4.\n\n3. answers \u2014 a 1-dimensional string array containing the 4 situations in order.\n -Assign situation1  \u2192 answers[0] , situation2  \u2192 answers[1] , situation3  \u2192 answers[2] , situation4  \u2192 answers[3] \n\nInput:\nDialogs:\n- dialog1: \"{dialog1}\"\n- dialog2: \"{dialog2}\"\n- dialog3: \"{dialog3}\"\n- dialog4: \"{dialog4}\"\n\nSituations:\n- situation1: \"{situation1}\"\n- situation2: \"{situation2}\"\n- situation3: \"{situation3}\"\n- situation4: \"{situation4}\"\n",
+            "generatemethod": "generate",
+            "generatefields": [
+                {
+                    "name": "ttsdialog",
+                    "generate": 1,
+                    "mapping": ""
+                },
+                {
+                    "name": "answers",
+                    "generate": 1,
+                    "mapping": ""
+                },
+                {
+                    "name": "listenorread",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "shuffleanswer",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "correctanswer",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data1",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data2",
+                    "generate": 1,
+                    "mapping": ""
+                },
+                {
+                    "name": "data3",
+                    "generate": 1,
+                    "mapping": ""
+                },
+                {
+                    "name": "data4",
+                    "generate": 1,
+                    "mapping": ""
+                },
+                {
+                    "name": "data5",
+                    "generate": 1,
+                    "mapping": ""
+                }
+            ],
+            "generatefileareas": [
+                {
+                    "name": "customfile1_image",
+                    "generate": 1,
+                    "mapping": "data5"
+                }
+            ],
+            "overallimagecontext": "--",
+            "promptfields": [
+                {
+                    "name": "imagestyle",
+                    "mapping": "user_topic"
+                },
+                {
+                    "name": "dialog1",
+                    "mapping": "user_customdata2"
+                },
+                {
+                    "name": "dialog2",
+                    "mapping": "user_customdata4"
+                },
+                {
+                    "name": "dialog3",
+                    "mapping": "user_customdata6"
+                },
+                {
+                    "name": "dialog4",
+                    "mapping": "user_customdata8"
+                },
+                {
+                    "name": "situation1",
+                    "mapping": "user_customdata1"
+                },
+                {
+                    "name": "situation2",
+                    "mapping": "user_customdata3"
+                },
+                {
+                    "name": "situation3",
+                    "mapping": "user_customdata5"
+                },
+                {
+                    "name": "situation4",
+                    "mapping": "user_customdata7"
+                }
+            ]
+        },
+        {
+            "itemnumber": 1,
+            "prompt": "",
+            "generatemethod": "reuse",
+            "generatefields": [
+                {
+                    "name": "ttsdialog",
+                    "generate": 1,
+                    "mapping": "item0_data2"
+                },
+                {
+                    "name": "answers",
+                    "generate": 1,
+                    "mapping": "item0_answers"
+                },
+                {
+                    "name": "listenorread",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "shuffleanswer",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "correctanswer",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data1",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data2",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data3",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data4",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data5",
+                    "generate": 0,
+                    "mapping": ""
+                }
+            ],
+            "generatefileareas": [
+                {
+                    "name": "customfile1_image",
+                    "generate": 1,
+                    "mapping": "item0_customfile1_image"
+                }
+            ],
+            "promptfields": []
+        },
+        {
+            "itemnumber": 2,
+            "prompt": "",
+            "generatemethod": "reuse",
+            "generatefields": [
+                {
+                    "name": "ttsdialog",
+                    "generate": 1,
+                    "mapping": "item0_data3"
+                },
+                {
+                    "name": "answers",
+                    "generate": 1,
+                    "mapping": "item0_answers"
+                },
+                {
+                    "name": "listenorread",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "shuffleanswer",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "correctanswer",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data1",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data2",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data3",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data4",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data5",
+                    "generate": 0,
+                    "mapping": ""
+                }
+            ],
+            "generatefileareas": [
+                {
+                    "name": "customfile1_image",
+                    "generate": 1,
+                    "mapping": "item0_customfile1_image"
+                }
+            ],
+            "promptfields": []
+        },
+        {
+            "itemnumber": 3,
+            "prompt": "",
+            "generatemethod": "reuse",
+            "generatefields": [
+                {
+                    "name": "ttsdialog",
+                    "generate": 1,
+                    "mapping": "item0_data4"
+                },
+                {
+                    "name": "answers",
+                    "generate": 1,
+                    "mapping": "item0_answers"
+                },
+                {
+                    "name": "listenorread",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "shuffleanswer",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "correctanswer",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data1",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data2",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data3",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data4",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data5",
+                    "generate": 0,
+                    "mapping": ""
+                }
+            ],
+            "generatefileareas": [
+                {
+                    "name": "customfile1_image",
+                    "generate": 1,
+                    "mapping": "item0_customfile1_image"
+                }
+            ],
+            "promptfields": []
+        }
+    ],
+    "lessonTitle": "Listen to 4 Conversations",
+    "lessonDescription": "Students choose the picture that best represents the currently playing dialog. To create, enter 4 dialogs. They will form 4 multi-choice questions where the choice of answer is an image representing the currently playing dialog. The dialogs are in TTS Dialog format. e.g A) I like toast. [new line]  B) Me too.",
+    "uniqueid": "690b33f83d02f",
+    "version": "10",
+    "fieldmappings": {
+        "target_language": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_topic": {
+            "enabled": true,
+            "title": "Image Style",
+            "description": "The style that the generated images should be in.",
+            "type": "dropdown",
+            "options": [
+                "Flat vector illustration",
+                "Cartoon",
+                "Photorealistic",
+                "Infographic",
+                "Line drawing",
+                "Digital painting",
+                "3D Render"
+            ]
+        },
+        "user_level": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_text": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_keywords": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata1": {
+            "enabled": true,
+            "title": "Situation 1",
+            "description": "Location and extra information for image generation",
+            "type": "text"
+        },
+        "user_customdata2": {
+            "enabled": true,
+            "title": "Dialog 1",
+            "description": "Dialog in TTS Dialog format.",
+            "type": "textarea"
+        },
+        "user_customdata3": {
+            "enabled": true,
+            "title": "Situation 2",
+            "description": "Location and extra information for image generation",
+            "type": "text"
+        },
+        "user_customdata4": {
+            "enabled": true,
+            "title": "Dialog 2",
+            "description": "Dialog in TTS Dialog format.",
+            "type": "textarea"
+        },
+        "user_customdata5": {
+            "enabled": true,
+            "title": "Situation 3",
+            "description": "Location and extra information for image generation",
+            "type": "text"
+        },
+        "user_customdata6": {
+            "enabled": true,
+            "title": "Dialog 3",
+            "description": "Dialog in TTS Dialog format.",
+            "type": "textarea"
+        },
+        "user_customdata7": {
+            "enabled": true,
+            "title": "Situation 4",
+            "description": "Location and extra information for image generation",
+            "type": "text"
+        },
+        "user_customdata8": {
+            "enabled": true,
+            "title": "Dialog 4",
+            "description": "Dialog in TTS Dialog format.",
+            "type": "textarea"
+        },
+        "user_customdata9": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata10": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        }
+    },
+    "tags": [
+        "Listening"
+    ]
+}

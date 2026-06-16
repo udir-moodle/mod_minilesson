@@ -1,0 +1,185 @@
+{
+    "items": [
+        {
+            "itemnumber": 0,
+            "prompt": "You are an expert educational content designer who creates engaging Reveal.js presentations.\nThe slides format is: {slidestype} format\n\nYour task is to create a Reveal.js presentation in {slidestype} format to summarize and explain the following topic:\n[{text}]\n\nYour output must include two top-level keys:\n1. slidesmarkdown \u2014 the Reveal.js  presentation ({slidestype} format)\n2.  slidescontenttype - 0 or 1 (0 = Markdown format, 1 = HTML format)\n3. data1 \u2014 a 1-dimensional array of individual image descriptions\n\nFollow these rules:\n\n## Presentation Rules:\n- The presentation should be clear, engaging, concise, and suitable for teaching or explaining.\n- Slides should be of type \"content\" or \"image\" \n- Content slides may contain text, emojis, tables. Image slides contain text and an image\n- There should be a minimum of 1 and a maximum of 5 image slides.\n- Image slides must appear immediately before or immediately after the content slide they illustrate (choose whichever is clearer).\n\n### Markdown rules\nThese rules should ONLY be applied if the slides are Markdown format. \n- The presentation must NOT start with '---'.  \n-  The first line of slidesmarkdown must be the heading of Slide 1.\n\n### HTML rules\nThese rules should ONLY be applied if the slides are HTML format\n- Theme Deference: Do NOT use any inline CSS (no style attributes). The slides must inherit all colors, fonts, and sizes from the active reveal.js theme.\n- Typography: Use semantic <h2> for slide titles and <p> or <ul> for body text.\n- Images: Use <img> tags without fixed width\/height attributes to allow the reveal.js layout engine to scale them automatically.\n- Verticality: Optionally use nested <section> tags for sub-topics.\n\n### Image Slide Rules (consolidated):\n- Each image slide contains ONLY a heading and ONE image.\n- Image slide headings must NOT include the words \u201cImage\u201d, \u201cPicture\u201d, \u201cPhoto\u201d, or similar.  \n  Use a clean descriptive heading only (e.g., \u201cWord Map\u201d, \u201cDiscovering Ideas\u201d).\n- Image filenames must be sequential: \"1.png\", \"2.png\", \"3.png\", \"4.png\", \"5.png\".\n- Use the following image style: {imagestyle}\n- Each entry in data1 must be an independent image description and must not reference the slideshow as a whole.\n\nOutput Format Requirements:\n- slidesmarkdown: valid Reveal.js {slidestype} format\n- slidescontenttype: 0 or 1 (0 if slides format = Markdown, 1 if slides format = HTML)\n- data1: an array of image descriptions in filename order.\n",
+            "generatemethod": "generate",
+            "generatefields": [
+                {
+                    "name": "slidesmarkdown",
+                    "generate": 1,
+                    "mapping": ""
+                },
+                {
+                    "name": "slidestheme",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "slidescontenttype",
+                    "generate": 1,
+                    "mapping": ""
+                },
+                {
+                    "name": "data1",
+                    "generate": 1,
+                    "mapping": ""
+                },
+                {
+                    "name": "data2",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data3",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data4",
+                    "generate": 0,
+                    "mapping": ""
+                },
+                {
+                    "name": "data5",
+                    "generate": 0,
+                    "mapping": ""
+                }
+            ],
+            "generatefileareas": [
+                {
+                    "name": "customfile1",
+                    "generate": 1,
+                    "mapping": "data1"
+                }
+            ],
+            "overallimagecontext": "user_topic",
+            "promptfields": [
+                {
+                    "name": "slidestype",
+                    "mapping": "user_customdata2"
+                },
+                {
+                    "name": "text",
+                    "mapping": "user_text"
+                },
+                {
+                    "name": "imagestyle",
+                    "mapping": "user_customdata1"
+                }
+            ]
+        }
+    ],
+    "lessonTitle": "Set of Slides",
+    "lessonDescription": "Enter a description of the tutorial that you would like AI to generate, and it will generate a set of slides with text and images for you to use.",
+    "uniqueid": "69076f35b4c3b",
+    "version": "31",
+    "fieldmappings": {
+        "target_language": {
+            "enabled": false,
+            "title": "Target language",
+            "description": "",
+            "type": "text"
+        },
+        "user_topic": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_level": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_text": {
+            "enabled": true,
+            "title": "The Slides Topic",
+            "description": "",
+            "type": "textarea"
+        },
+        "user_keywords": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata1": {
+            "enabled": true,
+            "title": "Image Style",
+            "description": "",
+            "type": "dropdown",
+            "options": [
+                "Flat vector illustration",
+                "Cartoon",
+                "Photorealistic",
+                "Infographic",
+                "Line drawing",
+                "Digital painting",
+                "3D Render"
+            ]
+        },
+        "user_customdata2": {
+            "enabled": true,
+            "title": "Slides Type",
+            "description": "The output format of the slides. Markdown is easier to edit by hand (but still techy). HTML can produce better layouts but its  not easy to edit by hand.",
+            "type": "dropdown",
+            "options": [
+                "Markdown",
+                "HTML"
+            ]
+        },
+        "user_customdata3": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata4": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata5": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata6": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata7": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata8": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata9": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        },
+        "user_customdata10": {
+            "enabled": false,
+            "title": "",
+            "description": "",
+            "type": "text"
+        }
+    },
+    "tags": [
+        "Grammar Instruction"
+    ]
+}

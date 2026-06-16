@@ -1,0 +1,46 @@
+<div id="mod_minilesson_items_cont" class="mod_minilesson_items_cont" style="display: {{display}};">
+    <form method="post">
+        <input type="hidden" name="sesskey" value="{{config.sesskey}}" />
+        <div class="mod_minilesson_bdbtn_container" id="mod_minilesson_bdbtn_container">
+            <button class="btn btn-primary d-none" tabindex="0" aria-controls="mod_minilesson_qpanel" type="button"
+                    id="mod_minilesson_deleteconfirmation" name="action" value="bulkdelete">
+                    <span>{{#str}}bulkdelete, mod_minilesson{{/str}}</span>
+            </button>
+        </div>
+    {{#hasitems}}
+    <table class="generaltable mod_minilesson_qpanel" id="{{tableid}}">
+        <thead>
+        <tr class="tblheader">
+                <th class="header c0 " scope="col">
+                    <div class="theadselectall">
+                        <input id="select-all-question" name="select-all-question" type="checkbox" value="" data-action="toggle" data-toggle="{{toggle}}" data-togglegroup="delete-question" data-toggle-selectall="{{#str}} selectall {{/str}}" data-toggle-deselectall="{{#str}} deselectall {{/str}}">
+                        <label for="select-all-question" class="mb-0 selectalllabel">{{#str}} selectall {{/str}}</label>
+                    </div>
+                </th>
+                <th class="header c1 number d-none" style="" scope="col">#</th>
+                <th class="header c2 date" style="" scope="col">{{#str}}reorder, mod_minilesson{{/str}}</th>
+                <th class="header c3 action" style="" scope="col">{{#str}}actions, mod_minilesson{{/str}}</th>
+        </tr>
+        </thead>
+        <tbody class="tblbody">
+        {{#items}}
+            {{> mod_minilesson/itemlistitem}}
+        {{/items}}
+        </tbody>
+    </table>
+    {{/hasitems}}
+    {{^hasitems}}
+        <div class="noitemyet text-center">
+            {{#str}}noitemyet, mod_minilesson{{/str}}
+        </div>
+    {{/hasitems}}
+    </form>
+</div>
+<div class="text-center">
+    <button class="additembutton btn btn-primary" id="additembtn"> + {{#str}}addnewitem, mod_minilesson{{/str}}</button>
+</div>
+{{#js}}
+require(['core/checkbox-toggleall', 'mod_minilesson/bulkselect'], function(ToggleAll) {
+    ToggleAll.init();
+});
+{{/js}}
