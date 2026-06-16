@@ -18,7 +18,7 @@
  * Form for creating/editing a fiction item in a MiniLesson activity.
  *
  * @package    mod_minilesson
- * @copyright  2023 Your Name <your@email.com>
+ * @copyright  2015 Justin Hunt (poodllsupport@gmail.com)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -48,7 +48,7 @@ class itemform extends baseform {
 
         // Initialize CodeMirror generic Editor for Yarn
         $PAGE->requires->js_call_amd(
-            constants::M_COMPONENT . '/codeeditor',
+            constants::M_COMPONENT . '/codeeditor-lazy',
             'setupCodeEditor',
             [
                 'id_' . itemtype::YARN,

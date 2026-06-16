@@ -36,6 +36,8 @@ class constants {
     const M_ATTEMPTSTABLE = 'minilesson_attempt';
     const M_AITABLE = 'minilesson_ai_result';
     const M_QTABLE = 'minilesson_rsquestions';
+    const M_MEDIA_CACHE_TABLE = 'minilesson_media_cache';
+    const M_TEMPL_USAGES_TABLE = 'minilesson_template_usages';
     const M_AUTHTABLE = 'minilesson_auth';
     const M_CORRECTPHONES_TABLE = 'minilesson_correctphones';
     const M_MODNAME = 'minilesson';
@@ -316,6 +318,8 @@ class constants {
             'Kevin' => 'Kevin',
             'Matthew' => 'Matthew',
             'en-US-LemonFox-puck' => 'Puck',
+            'en-US-Chirp3-HD-Lapetus' => 'Lapetus',
+            'en-US-Chirp3-HD-Charon' => 'Charon',
             'Ivy' => 'Ivy',
             'Joanna' => 'Joanna',
             'Kendra' => 'Kendra',
@@ -325,6 +329,8 @@ class constants {
             'en-US-Whisper-onyx' => 'Ed',
             'en-US-Whisper-nova' => 'Tiffany',
             'en-US-Whisper-shimmer' => 'Tammy',
+            'en-US-Chirp3-HD-Despina' => 'Despina',
+            'en-US-Chirp3-HD-Aode' => 'Aode',
         ],
         self::M_LANG_ENGB => ['Brian' => 'Brian', 'Amy' => 'Amy', 'Emma' => 'Emma', 'Arthur' => 'Arthur'],
         self::M_LANG_ENAU => ['Russell' => 'Russell', 'Nicole' => 'Nicole', 'Olivia' => 'Olivia'],

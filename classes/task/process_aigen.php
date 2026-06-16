@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -29,22 +28,19 @@ use mod_minilesson\local\progress\db_updater;
  * Class process_aigen
  *
  * @package    mod_minilesson
- * @copyright  2025 YOUR NAME <your@email.com>
+ * @copyright  2025 Justin Hunt (poodllsupport@gmail.com)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class process_aigen extends adhoc_task
-{
-    public function get_name()
-    {
+class process_aigen extends adhoc_task {
+    public function get_name() {
         return get_string('processaigentask', constants::M_COMPONENT);
     }
 
-    public function execute()
-    {
+    public function execute() {
         global $DB;
         $customdata = $this->get_custom_data();
         if (!empty($customdata->usageid)) {
-            $usage = $DB->get_record('minilesson_template_usages', ['id' => $customdata->usageid]);
+            $usage = $DB->get_record(\mod_minilesson\constants::M_TEMPL_USAGES_TABLE, ['id' => $customdata->usageid]);
             $lessontemplates = aigen::fetch_lesson_templates();
             if (!array_key_exists($usage->templateid, $lessontemplates)) {
                 return;
@@ -72,12 +68,12 @@ class process_aigen extends adhoc_task
             }
 
             $usage->timemodified = time();
-            $DB->update_record('minilesson_template_usages', $usage);
+            $DB->update_record(\mod_minilesson\constants::M_TEMPL_USAGES_TABLE, $usage);
 
             $modulecontext = context_module::instance($cm->id);
             $contextdata = json_decode($usage->contextdata, true);
 
-            $progressbar = new db_updater($usage->id, 'minilesson_template_usages', 'progress', 0);
+            $progressbar = new db_updater($usage->id, \mod_minilesson\constants::M_TEMPL_USAGES_TABLE, 'progress', 0);
             $progressbar->start_progress('Starting generation', count($config->items));
 
             // Make the AI generator object.
@@ -89,11 +85,12 @@ class process_aigen extends adhoc_task
                     $template,
                     $contextdata
                 );
+                $aigen->add_custom_field_data($importdata);
             } catch (textgenerationfailed $e) {
                 $usage->progress = -1;
                 $usage->error = $e->getMessage();
                 mtrace('Error: --> ' . json_encode(get_exception_info($e)));
-                $DB->update_record('minilesson_template_usages', $usage);
+                $DB->update_record(\mod_minilesson\constants::M_TEMPL_USAGES_TABLE, $usage);
                 return;
             }
 
