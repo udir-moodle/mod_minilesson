@@ -1067,5 +1067,23 @@ function xmldb_minilesson_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026052200.03, 'minilesson');
     }
 
+    if ($oldversion < 2026061100) {
+        // Add the shadow (video shadowing) item type to the config enableditems.
+        $enableditems = get_config(constants::M_MODNAME, 'enableditems');
+        if ($enableditems !== false) {
+            $items = empty($enableditems) ? [] : explode(',', $enableditems);
+            if (!in_array(constants::TYPE_SHADOW, $items)) {
+                $items[] = constants::TYPE_SHADOW;
+            }
+            if (!in_array(constants::TYPE_CARDS, $items)) {
+                $items[] = constants::TYPE_CARDS;
+            }
+            set_config('enableditems', implode(',', $items), constants::M_MODNAME);
+        }
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026061100, 'minilesson');
+    }
+
     return true;
 }

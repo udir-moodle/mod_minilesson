@@ -148,6 +148,8 @@ class constants {
     const TYPE_SCATTER = 'scatter';
     const TYPE_SLIDES = 'slides';
     const TYPE_FICTION = 'fiction';
+    const TYPE_SHADOW = 'shadow';
+    const TYPE_CARDS = 'cards';
     const AUDIOSTORYMETA = 'itemaudiofname';
     const AUDIOSTORYZOOMANDPAN = 'itemaudiostoryzoom';
     const ZOOMANDPAN_NONE = 0;
@@ -200,6 +202,10 @@ class constants {
     const AIGRADE_FEEDBACK = 'customtext2';
     const AIGRADE_FEEDBACK_LANGUAGE = 'customtext4';
     const AIGRADE_MODELANSWER = 'customtext3';
+
+    // Markers for grading dropdown lists that tell MiniLesson to use activity lang for feedback
+    const AIGRADE_FEEDBACK_TARGET_LANGUAGE = 'target';
+    const AIGRADE_FEEDBACK_NATIVE_LANGUAGE = 'native';
 
     const PENALIZEHINTS = 'customint2';
     const GAPFILLHINTRTL = 'customint6';
@@ -317,20 +323,22 @@ class constants {
             'Justin' => 'Justin',
             'Kevin' => 'Kevin',
             'Matthew' => 'Matthew',
-            'en-US-LemonFox-puck' => 'Puck',
-            'en-US-Chirp3-HD-Lapetus' => 'Lapetus',
-            'en-US-Chirp3-HD-Charon' => 'Charon',
+            'en-US-Chirp3-HD-Achird' => 'Achird++',
+            'en-US-LemonFox-puck' => 'Puck++',
+            'en-US-Chirp3-HD-Fenrir' => 'Fenrir++',
+            'en-US-Chirp3-HD-Charon' => 'Charon++',
             'Ivy' => 'Ivy',
             'Joanna' => 'Joanna',
             'Kendra' => 'Kendra',
             'Kimberly' => 'Kimberly',
             'Salli' => 'Salli',
-            'en-US-Whisper-alloy' => 'Ricky',
-            'en-US-Whisper-onyx' => 'Ed',
-            'en-US-Whisper-nova' => 'Tiffany',
-            'en-US-Whisper-shimmer' => 'Tammy',
-            'en-US-Chirp3-HD-Despina' => 'Despina',
-            'en-US-Chirp3-HD-Aode' => 'Aode',
+            'en-US-Whisper-alloy' => 'Ricky++',
+            'en-US-Whisper-onyx' => 'Ed++',
+            'en-US-Whisper-nova' => 'Tiffany++',
+            'en-US-Whisper-shimmer' => 'Tammy++',
+            'en-US-Chirp3-HD-Despina' => 'Despina++',
+            'en-US-Chirp3-HD-Aoede' => 'Aoede++',
+            'en-US-Chirp3-HD-Sulafat' => 'Sulafat++',
         ],
         self::M_LANG_ENGB => ['Brian' => 'Brian', 'Amy' => 'Amy', 'Emma' => 'Emma', 'Arthur' => 'Arthur'],
         self::M_LANG_ENAU => ['Russell' => 'Russell', 'Nicole' => 'Nicole', 'Olivia' => 'Olivia'],
@@ -693,6 +701,7 @@ class constants {
         self::TYPE_DICTATIONCHAT,
         self::TYPE_SLIDES,
         self::TYPE_FICTION,
+        self::TYPE_SHADOW,
       // constants::TYPE_SMARTFRAME,
       // constants::TYPE_COMPQUIZ,
       // constants::TYPE_CONVERSATION,

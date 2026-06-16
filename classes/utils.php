@@ -476,6 +476,30 @@ class utils {
         return $result;
     }
 
+    /**
+     * Call a Cloud Poodll web service function and return the JSON decoded response.
+     *
+     * @param string $functionname the web service function to call
+     * @param array $params parameters to pass to the web service function
+     * @return mixed JSON decoded response object, or false if credentials or token are unavailable
+     */
+    public static function call_cloudpoodll($functionname, $params = []) {
+        $conf = get_config(constants::M_COMPONENT);
+        if (empty($conf->apiuser) || empty($conf->apisecret)) {
+            return false;
+        }
+        $token = self::fetch_token($conf->apiuser, $conf->apisecret);
+        if (empty($token)) {
+            return false;
+        }
+        $url = self::get_cloud_poodll_server() . '/webservice/rest/server.php';
+        $params['wstoken'] = $token;
+        $params['wsfunction'] = $functionname;
+        $params['moodlewsrestformat'] = 'json';
+        $resp = self::curl_fetch($url, $params);
+        return json_decode($resp);
+    }
+
     // This is called from the settings page and we do not want to make calls out to cloud.poodll.com on settings
     // page load, for performance and stability issues. So if the cache is empty and/or no token, we just show a
     // "refresh token" links
@@ -1073,6 +1097,12 @@ class utils {
 
         // Feedback language for AI instructions
         $feedbacklanguage = $item->{constants::AIGRADE_FEEDBACK_LANGUAGE};
+        if ($feedbacklanguage == constants::AIGRADE_FEEDBACK_TARGET_LANGUAGE) {
+            $feedbacklanguage = $moduleinstance->ttslanguage;
+        } else if ($feedbacklanguage == constants::AIGRADE_FEEDBACK_NATIVE_LANGUAGE) {
+            $feedbacklanguage = $moduleinstance->nativelang;
+        }
+
         if ($conf->setnativelanguage) {
             $userprefdeflanguage = get_user_preferences(constants::NATIVELANG_PREF);
             if (!empty($userprefdeflanguage)) {
@@ -2924,5 +2954,13 @@ class utils {
 
     public static function get_sub_component($type = null, $subplugintype = constants::SUBPLUGINTYPES['item']) {
         return rtrim(sprintf("%s_%s", $subplugintype, (string) $type), '_');
+    }
+
+    public static function get_subitem_name($type = null, $subplugintype = constants::SUBPLUGINTYPES['item']) {
+        $itemtypename = get_string('pluginname', self::get_sub_component($type, $subplugintype));
+        if (get_string_manager()->string_exists($type, constants::M_COMPONENT)) {
+            $itemtypename = get_string($type, constants::M_COMPONENT);
+        }
+        return $itemtypename;
     }
 }

@@ -310,12 +310,20 @@ class aimanager {
             'importjson' => $importjson,
         ]);
         if ($response === null) {
+            $cpfields = [];
+            foreach ($fields as $fieldshortname => $field) {
+                $cpfields[$fieldshortname] = [
+                    'type' => $field->get('type'),
+                    'description' => $field->get('description'),
+                    'options' => \mod_minilesson\aigen::get_customfield_options($field),
+                ];
+            }
             $params['action'] = $actionconst;
-            $params['field'] = $field;
-            $params['importjson'] = $importjson;
+            $params['fields'] = json_encode($cpfields);
+            $params['importjson'] = json_encode($importjson);
             $params['subject'] = 'none';
             $params['region'] = $this->region;
-            // $response = self::call_cp_api($params);
+            $response = self::call_cp_api($params);
         }
         return $response;
     }

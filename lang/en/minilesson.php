@@ -451,6 +451,10 @@ $string['scatter'] = 'Scatter';
 $string['wordshuffle'] = 'WordShuffle';
 $string['slides'] = 'Slides';
 $string['fiction'] = 'Fiction';
+$string['shadow'] = 'Video Shadowing';
+$string['error:invalidyoutubeurl'] = 'The YouTube URL or video ID is not valid.';
+$string['error:noyoutubetranscript'] = 'No subtitles are available for this YouTube video.';
+$string['error:youtubefetchfailed'] = 'Could not fetch data from YouTube. Please try again later.';
 
 $string['transcriber'] = 'Transcriber';
 $string['transcriber_details'] = 'The transcription engine to use';
@@ -867,6 +871,7 @@ $string['aigrade_feedback'] = 'Feedback Instructions for AI';
 $string['aigrade_feedback_desc'] = 'The feedback instructions tell AI how to give feedback to the student on their response. They are a template that will be merged with the AI topic, AI data 1, AI data 2 to create the instructions. You can use the following variables in the instructions: {topic}, {ai data1}, {ai data2}.';
 $string['aigrade_feedback_help'] = 'The feedback instructions tell AI how to give feedback to the student on their response. They are a template that will be merged with the AI topic, AI data 1, AI data 2 to create the instructions. You can use the following variables in the instructions: {topic}, {ai data1}, {ai data2}.';
 $string['aigrade_feedback_language'] = 'AI Feedback Language';
+$string['aigrade_feedback_language_help'] = 'Sets the language that feedback will be returned in. Default native and target languages refers to those set in this Minilesson\'s settings. The choice here may be overridden if the user has set their own native language preference.';
 $string['aigrade_instructions_preset'] = 'Select a preset from the list to load ready made instructions into the text area below. You can modify the instructions as you wish.';
 $string['targetwordcount_title'] = 'Target Word Count';
 $string['totalmarks'] = 'Total Marks';
@@ -926,7 +931,7 @@ $string['notsubmit'] = 'Not Submitted';
 $string['notsubmitted'] = 'You have not submitted your answer. Submit now?';
 $string['submitnow'] = 'Submit';
 $string['enablenativelanguage'] = "Enable Native Language";
-$string['enablenativelanguage_details'] = 'If set, the student can choose their native language, this will override the default language of the feedback language that AI returns with the results. The language must currently be <a href="https://support.poodll.com/en/support/solutions/articles/19000163890-definitions-in-user-s-native-language">set in Poodll WordCards</a>, and it is picked up here.';
+$string['enablenativelanguage_details'] = 'If set, the student can choose their native language, this will override the default language of the feedback language that AI returns with the results.';
 $string['nopasting'] = "Disable copy/paste";
 $string['nopasting_desc'] = "Disable copy/paste into the text area. This is to prevent students from pasting in answers from elsewhere.";
 $string['attemptfor'] = 'Attempt: {$a}';
@@ -1108,34 +1113,46 @@ $string['instructionprompt'] = 'Instruction ';
 $string['freewriting:gradingprompt1'] = 'Default';
 $string['freewriting:gradingprompt2'] = 'Short Answer - requires the correct answer (ai data1)';
 $string['freewriting:gradingprompt3'] = 'Describe the picture - requires a picture description (ai data1)';
+$string['freewriting:gradingprompt4'] = 'Re-tell the story - requires a story summary (ai data1)';
 $string['freewriting:gradingprompt_dec1'] = 'Deduct 1 point for each grammar, spelling or punctuation error.';
 $string['freewriting:gradingprompt_dec2'] = 'The correct answer is "{ai data1}" Give 0 marks for an incorrect answer.
 Give 2 marks for a full sentence that has the correct meaning, Give 1 mark for a broken sentence that has the correct meaning.';
 $string['freewriting:gradingprompt_dec3'] = 'The student is describing a picture. The picture depicts the following scene: [{topic}]
 Give 2 points for each grammatically correct sentence that the student uses to describe part of the picture. Give 1 point if the sentence is almost correct.';
+$string['freewriting:gradingprompt_dec4'] = 'The student is re-telling a story. The story is: [{topic}]
+Give 2 points for each grammatically correct sentence that the student uses in their submission. Give 1 point if the sentence is almost correct.';
 $string['freewriting:feedbackprompt1'] = 'Default';
-$string['freewriting:feedbackprompt2'] = 'Describe the picture ';
+$string['freewriting:feedbackprompt2'] = 'Describe the picture - requires a picture description (ai data1)';
+$string['freewriting:feedbackprompt3'] = 'Re-tell the story - requires a story summary (ai data1)';
 $string['freewriting:feedbackprompt_dec1'] = 'Explain each mistake simply.';
 $string['freewriting:feedbackprompt_dec2'] = 'Explain major grammar mistakes simply. Suggest any elements of the scene that the student did not describe.';
+$string['freewriting:feedbackprompt_dec3'] = 'Explain major grammar mistakes simply. Suggest any elements of the story that the student did not include.';
 
 $string['freespeaking:gradingprompt1'] = 'Default';
 $string['freespeaking:gradingprompt2'] = 'Short Answer - requires the correct answer (ai data1) ';
-$string['freespeaking:gradingprompt3'] = 'Describe the picture - requires a picture description (ai data1) ';
+$string['freespeaking:gradingprompt3'] = 'Describe the picture - requires a picture description (topic) ';
+$string['freespeaking:gradingprompt4'] = 'Re-tell the story - requires a story summary (topic)';
 $string['freespeaking:gradingprompt_dec1'] = 'Deduct 1 point for each grammar error.';
 $string['freespeaking:gradingprompt_dec2'] = 'The correct answer is "{ai data1}" Give 0 marks for an incorrect answer.
 Give 2 marks for a full sentence that has the correct meaning, Give 1 mark for a sentence with mistakes that has the correct meaning';
 $string['freespeaking:gradingprompt_dec3'] = 'The student is describing a picture. The picture depicts the following scene: [{topic}]
 Give 2 points for each grammatically correct sentence that the student uses to describe part of the picture. Give 1 point if the sentence is almost correct.';
+$string['freespeaking:gradingprompt_dec4'] = 'The student is re-telling a story. The story they are re-telling is: [{topic}]
+Give 2 points for each grammatically correct sentence that the student uses in their submission. Give 1 point if the sentence is almost correct.';
 $string['freespeaking:feedbackprompt1'] = 'Default';
-$string['freespeaking:feedbackprompt2'] = 'Describe the picture';
+$string['freespeaking:feedbackprompt2'] = 'Describe the picture- requires a picture description (topic) ';
+$string['freespeaking:feedbackprompt3'] = 'Re-tell the story - requires a story summary (topic)';
 $string['freespeaking:feedbackprompt_dec1'] = 'Explain each grammar mistake simply. Do not comment on spelling or punctuation.';
 $string['freespeaking:feedbackprompt_dec2'] = 'Explain non minor grammar mistakes simply. Do not comment on spelling or punctuation. Suggest any elements of the scene that the student did not describe.';
+$string['freespeaking:feedbackprompt_dec3'] = 'Explain non minor grammar mistakes simply. Do not comment on spelling or punctuation. Suggest any elements of the story that the student did not describe.';
 $string['instructionsprompt_header'] = 'Instructions Prompt Header';
 $string['instructionsprompt'] = 'Instructions Prompt';
 $string['gradingprompt_header'] = 'Grading Prompt Header';
 $string['gradingprompt'] = 'Grading Prompt';
 $string['feedbackprompt_header'] = 'Feedback Prompt Header';
 $string['feedbackprompt'] = 'Feedback Prompt';
+$string['defaulttargetlanguage'] = "Default target language";
+$string['defaultnativelanguage'] = "Default native language";
 
 $string['audiochat:instructionsprompt1'] = 'Open discussion - requires a topic';
 $string['audiochat:instructionsprompt2'] = 'Discussing a picture - requires a picture description (topic) and questions (ai data1)';
@@ -1264,6 +1281,9 @@ $string['presentationmode_mobile_chat'] = 'Mobile Chat';
 $string['presentationmode_storymode'] = 'Story Mode';
 
 $string['fiction:syntaxcheckbutton'] = 'Syntax Check';
+$string['fiction:taptotranslate'] = 'Enable tap to translate';
+$string['fiction:taptotranslate_desc'] = 'If enabled, a translate icon appears in the lower right of each story text node. Tapping it translates that text into the learner\'s native language and shows the translation directly beneath the text. (Requires a browser with on-device translation support. i.e Chrome.)';
+$string['fiction:taptranslatearia'] = 'Translate this text';
 $string['yarnsyntaxok'] = 'Yarn Syntax Ok';
 $string['yarnsyntaxnotok'] = 'Yarn Syntax Not Ok';
 
@@ -1315,3 +1335,23 @@ $string['progress'] = 'Progress';
 $string['notfound'] = 'Not found';
 $string['jobnotfound'] = 'The job with that id could not be found';
 $string['notaccess'] = 'You have no permission to see status';
+
+// Account dashboard.
+$string['accountdashboard'] = 'Account Dashboard';
+$string['audio'] = 'Audio';
+$string['end'] = 'Expiration';
+$string['failedfetchsubreport'] = 'Failed to fetch subscription report';
+$string['maxmonth'] = 'Highest Month';
+$string['ninety_days'] = '90 Days';
+$string['no_subscriptions'] = 'No subscriptions.';
+$string['oneeighty_days'] = '180 Days';
+$string['per_plugin'] = 'Per Plugin (Last Yr)';
+$string['per_recording_type'] = 'Per recording type';
+$string['poodll_users'] = 'Poodll Users';
+$string['recording_min'] = 'Recording minutes';
+$string['recordings'] = 'Recordings';
+$string['start'] = 'Start';
+$string['subscription'] = 'Subscription';
+$string['thirty_days'] = '30 Days';
+$string['threehundredsixtyfive_days'] = '365 Days';
+$string['video'] = 'Video';
