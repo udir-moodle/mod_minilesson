@@ -40,6 +40,8 @@ class constants {
     const M_TEMPL_USAGES_TABLE = 'minilesson_template_usages';
     const M_AUTHTABLE = 'minilesson_auth';
     const M_CORRECTPHONES_TABLE = 'minilesson_correctphones';
+    const M_CPAGESUBMISSIONS_TABLE = 'minilesson_cpagesubmissions';
+    const M_CPAGELIKES_TABLE = 'minilesson_cpagelikes';
     const M_MODNAME = 'minilesson';
     const M_URL = '/mod/minilesson';
     const M_PATH = '/mod/minilesson';
@@ -150,6 +152,7 @@ class constants {
     const TYPE_FICTION = 'fiction';
     const TYPE_SHADOW = 'shadow';
     const TYPE_CARDS = 'cards';
+    const TYPE_WORDCARDS = 'wordcards';
     const AUDIOSTORYMETA = 'itemaudiofname';
     const AUDIOSTORYZOOMANDPAN = 'itemaudiostoryzoom';
     const ZOOMANDPAN_NONE = 0;
@@ -236,7 +239,7 @@ class constants {
     const MAXANSWERS = 4;
     const MAXCUSTOMTEXT = 7;
     const MAXCUSTOMDATA = 5;
-    const MAXCUSTOMINT = 9;
+    const MAXCUSTOMINT = 10;
 
     const ITEMTEXTAREA_EDOPTIONS = ['trusttext' => 0, 'noclean' => 1, 'maxfiles' => 0];
     const READSENTENCE = 'customint2';
@@ -705,6 +708,7 @@ class constants {
         self::TYPE_SLIDES,
         self::TYPE_FICTION,
         self::TYPE_SHADOW,
+        self::TYPE_WORDCARDS,
       // constants::TYPE_SMARTFRAME,
       // constants::TYPE_COMPQUIZ,
       // constants::TYPE_CONVERSATION,

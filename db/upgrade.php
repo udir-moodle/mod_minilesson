@@ -1119,5 +1119,75 @@ function xmldb_minilesson_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026062200, 'minilesson');
     }
 
+    if ($oldversion < 2026070300) {
+        // Community page: sharing consent + like counts, one row per item + user.
+        $table = new xmldb_table('minilesson_cpagesubmissions');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('itemid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('consent', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('likes', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('idx_itemid_userid', XMLDB_INDEX_UNIQUE, ['itemid', 'userid']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Community page: which user liked which submission.
+        $table = new xmldb_table('minilesson_cpagelikes');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('submissionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('fksubmissionid', XMLDB_KEY_FOREIGN, ['submissionid'], 'minilesson_cpagesubmissions', ['id']);
+        $table->add_index('idx_submission_userid', XMLDB_INDEX_UNIQUE, ['submissionid', 'userid']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026070300, 'minilesson');
+    }
+
+    if ($oldversion < 2026070600) {
+        // The free speaking community page setting (customint9) changed from a
+        // checkbox (1 = on) to the minimum eligible grade (0 = off). Migrate
+        // items enabled under the old scheme to the default threshold.
+        $DB->execute(
+            "UPDATE {minilesson_rsquestions} SET customint9 = 80 WHERE type = ? AND customint9 = 1",
+            [constants::TYPE_FREESPEAKING]
+        );
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026070600, 'minilesson');
+    }
+
+    if ($oldversion < 2026070700) {
+        // Register the new CEFR A2 default AI-generation template and pick up
+        // edits to existing default templates. Re-seeding is idempotent.
+        \mod_minilesson\aigen::create_default_templates();
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026070700, 'minilesson');
+    }
+
+    if ($oldversion < 2026070900) {
+        // Add the wordcards item type to the config enableditems.
+        $enableditems = get_config(constants::M_MODNAME, 'enableditems');
+        if ($enableditems !== false) {
+            $items = empty($enableditems) ? [] : explode(',', $enableditems);
+            if (!in_array(constants::TYPE_WORDCARDS, $items)) {
+                $items[] = constants::TYPE_WORDCARDS;
+            }
+            set_config('enableditems', implode(',', $items), constants::M_MODNAME);
+        }
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026070900, 'minilesson');
+    }
+
     return true;
 }

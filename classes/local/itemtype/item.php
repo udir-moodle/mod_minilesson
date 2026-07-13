@@ -71,6 +71,9 @@ abstract class item implements \templatable, \renderable {
     // NEEDS SPEECH REC
     protected $needsspeechrec = false;
 
+    /** @var bool whether this item type produces a grade/result. */
+    public $gradeable = true;
+
     /** @var bool show itemreview */
     protected $showitemreview = true;
 
@@ -508,6 +511,15 @@ abstract class item implements \templatable, \renderable {
             $testitem->itemttsaudiovoice = $itemrecord->{constants::TTSQUESTIONVOICE};
             $testitem->itemttsoption = $itemrecord->{constants::TTSQUESTIONOPTION};
             $testitem->itemttsautoplay = $itemrecord->{constants::TTSAUTOPLAY};
+            // Fetch Audio URL.
+            $testitem->itemttsaudiourl = utils::fetch_polly_url(
+                    $this->token,
+                    $this->region,
+                    $testitem->itemttsaudio,
+                    $testitem->itemttsoption,
+                    $testitem->itemttsaudiovoice,
+                    $this->moduleinstance->id
+                );
         }
 
         // YT Clip
@@ -913,7 +925,16 @@ abstract class item implements \templatable, \renderable {
             if ($phonetics && array_key_exists($i, $phonetics)) {
                 $ps = utils::super_trim($phonetics[$i]);
                 $psarray = explode('|#', $ps);
-                $sentence->phonetic = array_key_exists(0, $psarray) ? utils::super_trim($psarray[0]) : '';
+                // Phonetics needs to be stored at the word level as are sentence->words
+                // currently it is just the entire phonetics string is sent up
+                // so the transcript vs passage match will always match phonetically partially
+                // ie words match like this: [extraction] <--> I am doing an explanation
+                // but phonetics match like this: ai im doiz za extactshin ---> ai im doiz za explanashin
+                // ie there will always be a match and its meaningless
+                // So until we can reliably do this (multi word gaps etc) we are turning it off
+                // $sentence->phonetic = array_key_exists(0, $psarray) ? utils::super_trim($psarray[0]) : '';
+                $sentence->phonetic = "";
+
                 $sentence->segmentedsentence = array_key_exists(1, $psarray) ? utils::super_trim($psarray[1]) : '';
                 if (empty($sentence->segmentedsentence)) {
                     list($phones, $segmentedsentence) = utils::fetch_phones_and_segments(
@@ -968,7 +989,10 @@ abstract class item implements \templatable, \renderable {
             // NB it will separate the part after ] as a separate word. [fath]er => ["[fath]", "er"]
             // if that is a problem, its probably better to fix the sentence.
             // if (preg_match_all('/\[[^\]]+\]|[^\s]+/', $sentence, $matches)) {
-            if (preg_match_all('/\[[^\]]+\][^\s]*|[^\s]+/', $sentence, $matches)) {
+            // We use a negated character class [^\s\.\,\!\?\;\:\)\}\"\]]* instead of [^\s]*
+            // so that standard punctuation (like ?) is NOT glued to the gap, but alphanumeric 
+            // suffixes (like in [fath]er) ARE glued.
+            if (preg_match_all('/\[[^\]]+\][^\s\.\,\!\?\;\:\)\}\"\]]*|[^\s]+/', $sentence, $matches)) {
                 $words = $matches[0];
             } else {
                 $words = [];
@@ -1816,6 +1840,49 @@ abstract class item implements \templatable, \renderable {
         $result->hasanswerdetails = false;
         $result->correctans = [];
         $result->incorrectans = [];
+    }
+
+    /**
+     * Is the community page (shared student submissions) on for this item?
+     * Item types that support it (e.g. free speaking) override this.
+     *
+     * @return bool
+     */
+    public function community_page_enabled() {
+        return false;
+    }
+
+    /**
+     * Are likes allowed on this item's community page?
+     * Item types that support it (e.g. free speaking) override this.
+     *
+     * @return bool
+     */
+    public function community_likes_enabled() {
+        return false;
+    }
+
+    /**
+     * The minimum step grade (percent) for a submission to be eligible for
+     * this item's community page. Item types that make it configurable
+     * (e.g. free speaking) override this.
+     *
+     * @return int
+     */
+    public function community_eligibility_grade() {
+        return \mod_minilesson\local\cpage::ELIGIBLE_GRADE;
+    }
+
+    /**
+     * Does a community page submission for this item need an audio recording?
+     * True for spoken item types (the recording is the submission); written
+     * item types (e.g. free writing) override this to return false, and their
+     * community page shows the text with a "more" link instead.
+     *
+     * @return bool
+     */
+    public function community_needs_media() {
+        return true;
     }
 
     public static function is_configured() {
