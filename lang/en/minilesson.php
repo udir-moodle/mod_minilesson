@@ -427,6 +427,7 @@ $string['wordshuffle_a11y_returned_to_bank'] = 'Returned "{$a}" to word bank';
 $string['wordshuffle_a11y_placed_in_slot'] = 'Placed "{$a}" in drop slot';
 
 $string['multichoice'] = 'Multi Choice';
+$string['multichoicequiz'] = 'Multichoice Quiz';
 $string['multiaudio'] = 'MC Audio';
 $string['dictation'] = 'Dictation';
 $string['dictationchat'] = 'Dictation Chat';
@@ -701,6 +702,12 @@ $string['totalscore'] = 'Total Score:';
 $string['score'] = 'Score';
 $string['questiontext'] = 'Question';
 $string['ttsdialoginstructions'] = "Choose the speaker voices for roles A,B and C and enter the dialog. Begin each dialog line with the speaker role + ')'. e.g A) Hello. Sound effect lines begin with >> e.g >>seagulls";
+$string['speakera'] = "Speaker A";
+$string['speakerb'] = "Speaker B";
+$string['speakerc'] = "Speaker C";
+$string['ttsdialoglabela'] = "Speaker A label";
+$string['ttsdialoglabelb'] = "Speaker B label";
+$string['ttsdialoglabelc'] = "Speaker C label";
 
 $string['courseattempts'] = 'Course Attempts';
 $string['courseattemptsreport'] = 'Course Attempts Report';
@@ -786,12 +793,17 @@ $string['eventminilessonstepsubmitted'] = 'Minilesson step submitted';
 $string['eventminilessonattemptsubmitted'] = 'Minilesson attempt submitted';
 $string['import'] = 'Import';
 $string['importing'] = 'Importing';
-$string['importresults'] = 'Import Results';
+$string['importcompleted'] = 'Import completed. The {$a} imported item(s) are shown below.';
+$string['importpartial'] = 'Imported {$a->imported} of {$a->total} items.';
+$string['importnoitems'] = 'No items were found in the import file.';
+$string['importfailures'] = 'Items that could not be imported';
+$string['importitemnumber'] = 'Item';
+$string['importproblem'] = 'Problem';
 $string['backtoimport'] = 'Return to Import Top';
+$string['backtoitems'] = 'Return to Lesson Items';
 $string['importinstructions'] = 'You can import Minilesson items using form below. The import file should be a CSV or JSON file. Refer to the <a href="https://support.poodll.com/en/support/solutions/articles/19000153051-importing-items-into-minilesson" target="_blank">import documentation</a> for the data and data format to include for each item type. There is an sample import file below. Or use the export button further down the page to export the items in this activity to a JSON file.';
 $string['cannotsavecsv'] = 'Cannot save csv file';
 $string['csvdelimiter'] = 'Delimiter';
-$string['importitemsresult'] = "Import Items Results";
 $string['examplecsv'] = 'Example csv/text file';
 $string['examplecsv_help'] = 'To use the example csv file, download it then open it with a text or spreadsheet editor. Leave the first line unchanged, then edit the following lines (records) and add your Minilesson item data, adding more lines as necessary. Save the file as CSV then upload it.';
 $string['examplejson'] = 'Example json file';
@@ -802,9 +814,17 @@ $string['importfromlang'] = 'Translate from language';
 $string['importtolang'] = 'Translate to language';
 
 $string['error:emptyfield'] = 'CANNOT BE EMPTY';
-$string['error:failed'] = 'FAILED';
+$string['error:unknowncolumn'] = 'Unknown column: {$a}';
 $string['error:correctanswer'] = 'INVALID ANSWER';
-$string['error:invaliditemtype'] = 'INVALID ITEM TYPE';
+$string['error:correctanswerrange'] = 'The correct answer must be a number between 1 and {$a} (the number of answer options)';
+$string['error:toomanyanswers'] = 'Too many answer options. The maximum is {$a}';
+$string['error:invalidoptionvalue'] = 'Value "{$a->value}" is not one of the allowed values: {$a->allowed}';
+$string['error:pagenocontent'] = 'A page item needs some content: text, tts, ttsdialog, ttspassage, ytid, iframe or an uploaded media file';
+$string['error:nogaps'] = 'No gaps found. Enclose the gap letters in square brackets, e.g. "This is my d[og]"';
+$string['error:needspipepair'] = 'Each line needs a pipe-separated pair, e.g. "Term|Definition"';
+$string['error:invalidyarn'] = 'The yarn script must start with a "title: Start" node, and every node needs "---" after its header and "===" after its body';
+$string['error:noh5ppackage'] = 'An H5P package file (.h5p) is required in the customfile1 file area';
+$string['error:invaliditemtype'] = 'Invalid item type';
 $string['error:invalidjson'] = 'INVALID JSON';
 $string['error:noitemsinjson'] = 'NO ITEMS IN JSON';
 $string['error:csvloaderror'] = 'CSV LOAD ERROR';
@@ -1052,6 +1072,7 @@ $string['aigentemplatename:ayoutubelesson'] = 'YouTube Lesson';
 $string['aigentemplatename:youtubefinalelesson'] = 'YouTube Finale (listen and speak)';
 $string['aigentemplatename:wordpractice'] = 'Word Practice v1';
 $string['aigentemplatename:wordpractice2'] = 'Word Practice v2';
+$string['aigentemplatename:wordpractice_v4'] = 'Word Practice v4';
 $string['aigentemplatename:audiostory'] = 'Listen to the Story (generate story)';
 $string['aigentemplatename:set_of_slides'] = 'Set of Slides';
 $string['aigentemplatename:set_of_slides_nopics'] = 'Set of Slides (no images)';
@@ -1072,6 +1093,13 @@ $string['aigentemplatedescription:ayoutubelesson'] = 'Enter a YouTube video id (
 $string['aigentemplatedescription:youtubefinalelesson'] = 'This is a lesson based on a YouTube video story. A related but simplified story is prepared and comprehension, and speaking actvities are built on the story. Finally the student sees the original video that they have been studying';
 $string['aigentemplatedescription:wordpractice'] = 'Enter a list of words (5) and a topic, Poodll will make a activity with vocab cards, listening and typing gapfills, a space game a free writing activity';
 $string['aigentemplatedescription:wordpractice2'] = 'Given a list of words, example sentences and the students native language, this template will generate a set of practice activities with images and native language hints. You can use up to 9 words.';
+$string['aigentemplatedescription:wordpractice_v4'] = 'Enter 4 - 10 keywords or phrases, and set the user\'s native language. They will be used to generate:
+i)  a set of vocab cards with translations and example sentences
+ii) scatter activity (matching keyword/phrase with translation) 
+iii)  a wordcards item - listen and choose mode 
+iv)  a wordcards item - listen and type mode
+v)  a wordcards item - choose the word mode 
+vi)  a wordcards item - type the word mode';
 $string['aigentemplatedescription:audiostory'] = 'Enter a topic, the learners language level and a type of story. AI will prepare an audio story with listening and speaking activities.';
 $string['aigentemplatedescription:set_of_slides'] = 'This template will create a tutorial slides that are based on a description of what you want to teach.';
 $string['aigentemplatedescription:set_of_slides_nopics'] = 'Enter a description of the tutorial that you would like AI to generate, and it will generate a set of slides for you to use.';
@@ -1100,7 +1128,7 @@ $string['aigentemplatedescription:passagereading_generate'] = 'Enter a list of k
 $string['aigentemplatename:freespeaking'] = 'Free Speaking';
 $string['aigentemplatedescription:freespeaking'] = 'A Free Speaking activity about the topic that you choose.';
 $string['aigentemplatename:wordshuffle_generate'] = 'Word Shuffle (generate sentences)';
-$string['aigentemplatedescription:wordshuffle_generate'] = 'Create a Word Shuffle activity by entering 4 - 10 keywords. The keywords will also be used to generate sentences, and a picture to go with each sentence in the shuffle activity.';
+$string['aigentemplatedescription:wordshuffle_generate'] = 'Create a Word Shuffle activity by entering 4 - 10 keywords, the user\'s language level and their native language. The keywords will also be used to generate sentences, and a picture to go with each sentence in the shuffle activity, and a translation of the sentence.';
 $string['aigentemplatename:wordshuffle_keywords_generate'] = 'Choose the correct word (generate sentences)';
 $string['aigentemplatedescription:wordshuffle_keywords_generate'] = 'Create a choose-the-correct-word activity using a Word Shuffle item. Enter 4 - 10 keywords. The keywords will be used to generate sentences each with a gap and 4 possible word choices. A native language sentence translation and a picture will be generated for each sentence.';
 $string['aigentemplatename:scatter'] = 'Scatter';
@@ -1186,7 +1214,7 @@ $string['aigentemplatedescription:spacegame_upload'] = 'Enter up to ten matching
 $string['aigentemplatename:scatter_upload'] = 'Scatter (upload)';
 $string['aigentemplatedescription:scatter_upload'] = 'Enter up to ten matching pairs that will be used to make a Scatter item where students will match the pairs by tapping the correct cards.';
 $string['aigentemplatename:vocabcards_upload_markup'] = 'Vocab Cards (upload with markup)';
-$string['aigentemplatedescription:vocabcards_upload_markup'] = 'A set of vocabulary cards. Each card can have up to 3 lines of text: usually keyword | keyword-translation | keyword-examplesentence.
+$string['aigentemplatedescription:vocabcards_upload_markup'] = 'A set of vocabulary cards. Each card can have up to 4 lines of text: usually keyword | keyword-translation | keyword-examplesentence|keyword-examplesentence-translation
 An image will be generated for each card ';
 $string['aigentemplatename:fluency_upload_markup'] = 'Fluency (upload sentences with markup)';
 $string['aigentemplatedescription:fluency_upload_markup'] = 'Create a Fluency item by supplying  up to 10 sentences which students will practice saying aloud. A picture will be generated to go with each sentence in the item.';
@@ -1423,6 +1451,10 @@ $string['templateagentonly_help'] = 'If set to Yes, this template is hidden from
 $string['hideanswertext'] = 'Hide Answer Text';
 $string['hideanswertext_detail'] = 'When using images or audio as answers, check this option to hide the answer text from the
 student. The answer text will be used when displaying results';
+$string['hideanswer_abcd'] = 'Show A,B,C,D in place of text';
+$string['hidequestiontext'] = 'Hide Question Text';
+$string['hidequestion_no'] = 'No - show the question';
+$string['hidequestion_yes'] = 'Yes - hide the question';
 
 $string['answerlayout'] = "Answer Layout";
 $string['twocolumn'] = "2 Column";
@@ -1461,7 +1493,7 @@ $string['fiction_history_close'] = 'Close history';
 
 $string['fiction:syntaxcheckbutton'] = 'Syntax Check';
 $string['fiction:taptotranslate'] = 'Enable tap to translate';
-$string['fiction:taptotranslate_desc'] = 'If enabled, a translate icon appears in the lower right of each story text node. Tapping it translates that text into the learner\'s native language and shows the translation directly beneath the text. (Requires a browser with on-device translation support. i.e Chrome.)';
+$string['fiction:taptotranslate_desc'] = 'If enabled, a translate icon appears in the lower right of each story text node. Tapping it translates that text into the learner\'s native language and shows the translation directly beneath the text.';
 $string['fiction:taptranslatearia'] = 'Translate this text';
 $string['yarnsyntaxok'] = 'Yarn Syntax Ok';
 $string['yarnsyntaxnotok'] = 'Yarn Syntax Not Ok';
@@ -1473,10 +1505,17 @@ $string['grade_student_submission_desc'] = 'Requests to MiniLesson for AI to gra
 $string['cloudpoodll'] = 'Cloud Poodll';
 $string['choosenativelanguageinstructions'] = 'Set your native language here. It may be used to provide feedback and help in the activity.';
 $string['downloadtranslationmodel'] = 'Download Translation Model';
-$string['downloadtranslationmodel_desc'] = 'This story uses translation features. Would you like to download the translation model? (This is a one-time download)';
+$string['downloadtranslationmodel_desc'] = 'This item uses translation features. Would you like to download the translation model? (This is a one-time download)';
 $string['download'] = 'Download';
 $string['downloadingtranslator'] = 'Downloading translator: {$a}%';
 $string['fiction:translating'] = 'Translating ...';
+$string['ttsdialog:translating'] = 'Translating ...';
+$string['ttsdialog:back'] = 'Previous line';
+$string['ttsdialog:forward'] = 'Next line';
+$string['ttsdialog:playpause'] = 'Play / pause';
+$string['ttsdialog:stop'] = 'Stop';
+$string['ttsdialog:translate'] = 'Translate this line';
+$string['ttsdialog:playline'] = 'Play this line';
 $string['customlayout'] = 'Custom Layout';
 $string['customkeys'] = 'Custom Virtual Keys';
 $string['customkeys_help'] = 'Add space separated list of keys for the virtual keyboard. E.g. "à â æ ç"';

@@ -189,6 +189,9 @@ abstract class item implements \templatable, \renderable {
         $keycolumns['ttsdialogvoicea'] = ['type' => 'voice', 'optional' => true, 'default' => null, 'dbname' => constants::TTSDIALOGVOICEA];
         $keycolumns['ttsdialogvoiceb'] = ['type' => 'voice', 'optional' => true, 'default' => null, 'dbname' => constants::TTSDIALOGVOICEB];
         $keycolumns['ttsdialogvoicec'] = ['type' => 'voice', 'optional' => true, 'default' => null, 'dbname' => constants::TTSDIALOGVOICEC];
+        $keycolumns['ttsdialoglabela'] = ['type' => 'string', 'optional' => true, 'default' => null, 'dbname' => constants::TTSDIALOGLABELA];
+        $keycolumns['ttsdialoglabelb'] = ['type' => 'string', 'optional' => true, 'default' => null, 'dbname' => constants::TTSDIALOGLABELB];
+        $keycolumns['ttsdialoglabelc'] = ['type' => 'string', 'optional' => true, 'default' => null, 'dbname' => constants::TTSDIALOGLABELC];
         $keycolumns['ttsdialogvisible'] = ['type' => 'boolean', 'optional' => true, 'default' => 0, 'dbname' => constants::TTSDIALOGVISIBLE];
         $keycolumns['ttspassage'] = ['type' => 'string', 'optional' => true, 'default' => null, 'dbname' => 'itemttspassage'];
         $keycolumns['ttspassageopts'] = ['type' => 'string', 'optional' => true, 'default' => null, 'dbname' => 'itemttspassageopts'];
@@ -220,6 +223,11 @@ abstract class item implements \templatable, \renderable {
         $keycolumns['int8'] = ['type' => 'int', 'optional' => true, 'default' => 0, 'dbname' => 'customint8'];
         $keycolumns['int9'] = ['type' => 'int', 'optional' => true, 'default' => 0, 'dbname' => 'customint9'];
         $keycolumns['int10'] = ['type' => 'int', 'optional' => true, 'default' => 0, 'dbname' => 'customint10'];
+        $keycolumns['int11'] = ['type' => 'int', 'optional' => true, 'default' => 0, 'dbname' => 'customint11'];
+        $keycolumns['int12'] = ['type' => 'int', 'optional' => true, 'default' => 0, 'dbname' => 'customint12'];
+        $keycolumns['int13'] = ['type' => 'int', 'optional' => true, 'default' => 0, 'dbname' => 'customint13'];
+        $keycolumns['int14'] = ['type' => 'int', 'optional' => true, 'default' => 0, 'dbname' => 'customint14'];
+        $keycolumns['int15'] = ['type' => 'int', 'optional' => true, 'default' => 0, 'dbname' => 'customint15'];
         $keycolumns['timelimit'] = ['type' => 'int', 'optional' => true, 'default' => 0, 'dbname' => 'timelimit'];
         $keycolumns['layout'] = ['type' => 'layout', 'optional' => true, 'default' => 0, 'dbname' => 'layout'];
         $keycolumns['correctanswer'] = ['type' => 'int', 'optional' => true, 'default' => 0, 'dbname' => 'correctanswer'];
@@ -403,6 +411,368 @@ abstract class item implements \templatable, \renderable {
     }
 
     /**
+     * Describes the shared files/filesid convention of the import payload. The web service layer
+     * appends this to the usage guidance of every item type that documents its import spec.
+     */
+    public const AIGEN_FILES_CONVENTION = 'Files (images/audio) are embedded in the import payload as base64. '
+        . 'Give the item a numeric "filesid" property, and add a top level "files" object to the payload: '
+        . '{"files": {"<filesid>": {"<filearea>": {"<filename>": "<base64 data>"}}}}. '
+        . 'The file areas accepted by each item type are listed in its import spec. '
+        . 'Prefer the tts fields over uploading audio files: tts audio is generated automatically by the server.';
+
+    /**
+     * A short description of when and why to choose this item type when composing a lesson.
+     * Item types should override this. Used by the aigen web services (agent-facing).
+     *
+     * @return string
+     */
+    public static function aigen_fetch_usage() {
+        return '';
+    }
+
+    /**
+     * The machine readable import field spec for this item type, used by AI agents composing
+     * import JSON for the mod_minilesson_aigen_import_items_json web service.
+     * Returns null when the item type has not (yet) documented its import format.
+     * Shape: ['usage' => string, 'fields' => [fieldspec, ...], 'fileareas' => [...], 'example' => [...]]
+     * where a fieldspec is ['jsonname', 'type', 'required', 'default', 'description', 'options'?, 'example'?]
+     * and 'example' is a complete import payload as a PHP array (items + optionally files).
+     * Item types document themselves by overriding this; see minilessonitem_multichoice for a model.
+     *
+     * @return array|null the import spec, or null when this item type has no agent-facing import docs
+     */
+    public static function aigen_fetch_import_spec() {
+        return null;
+    }
+
+    /**
+     * Builds field specs (keyed by jsonname) for the requested common/shared import fields.
+     * type/required/default are read from get_keycolumns() so they cannot drift from the import code;
+     * the descriptions and option meanings are maintained here.
+     * Item type overrides of aigen_fetch_import_spec() call this for the shared fields they support,
+     * may tweak the descriptions, then append their own field specs.
+     *
+     * @param array $jsonnames the jsonnames of the shared fields to build specs for
+     * @return array field specs keyed by jsonname
+     */
+    protected static function aigen_common_import_field_specs($jsonnames) {
+        $keycolsbyjsonname = static::aigen_keycolumns_by_jsonname();
+
+        $voicenote = 'A voice display name (case-insensitive), e.g. "Joey" (en-US) or "Mathieu" (fr-FR), '
+            . 'or "auto" to let the server pick a voice matching the lesson language.';
+        $catalog = [
+            'type' => [
+                'description' => 'The item type machine name, e.g. "multichoice".',
+            ],
+            'name' => [
+                'description' => 'A short title for the item. Shown in the lesson item list and at the top of the item screen.',
+                'example' => 'Comprehension check 1',
+            ],
+            'visible' => [
+                'description' => 'Whether the item is shown to learners.',
+                'options' => [
+                    ['value' => '1', 'meaning' => 'Visible (default)'],
+                    ['value' => '0', 'meaning' => 'Hidden from learners'],
+                ],
+            ],
+            'instructions' => [
+                'description' => 'One short sentence telling the learner what to do, shown near the top of the item.',
+                'example' => 'Choose the correct answer.',
+            ],
+            'text' => [
+                'description' => 'The main text of the item, usually the question. It normally renders as a short, '
+                    . 'centered heading-style line above the activity, so keep it to a single line: multi-line '
+                    . 'content such as a two-speaker dialog looks poor centered. For multi-line or dialog content '
+                    . 'use the "textarea" text block instead, where the item type offers it. Its exact role '
+                    . 'depends on the item type (see the item type usage notes).',
+            ],
+            'tts' => [
+                'description' => 'Text read aloud to the learner as a text-to-speech (TTS) audio prompt at the top of the item. '
+                    . 'Use this to add an audio prompt without uploading audio files.',
+                'example' => 'Which of these expressions is a greeting?',
+            ],
+            'ttsvoice' => [
+                'description' => 'The TTS voice that reads the "tts" text. ' . $voicenote,
+                'example' => 'auto',
+            ],
+            'ttsoption' => [
+                'description' => 'Reading speed / processing option for the "tts" audio.',
+                'options' => [
+                    ['value' => 'normal', 'meaning' => 'Normal speed (default; any unrecognised value also maps to normal)'],
+                    ['value' => 'slow', 'meaning' => 'Slow reading speed'],
+                    ['value' => 'veryslow', 'meaning' => 'Very slow reading speed'],
+                    ['value' => 'SSML', 'meaning' => 'Treat the tts text as SSML markup (this value is case-sensitive)'],
+                ],
+            ],
+            'ttsautoplay' => [
+                'description' => 'Whether the "tts" audio plays automatically when the item is shown.',
+                'options' => [
+                    ['value' => '0', 'meaning' => 'Learner presses play (default)'],
+                    ['value' => '1', 'meaning' => 'Play automatically'],
+                ],
+            ],
+            'ttsdialog' => [
+                'description' => 'A two or three speaker dialog read aloud by TTS. An array of lines; start each line with '
+                    . '"A)", "B)" or "C)" to assign it to the matching speaker voice (ttsdialogvoicea/b/c). '
+                    . 'Lines without a prefix continue the previous speaker. A line starting with ">>" plays a named sound effect.',
+                'example' => '["A) Hello, how are you?", "B) Fine thanks. And you?"]',
+            ],
+            'ttsdialogvoicea' => [
+                'description' => 'TTS voice for dialog speaker A. ' . $voicenote,
+                'example' => 'auto',
+            ],
+            'ttsdialogvoiceb' => [
+                'description' => 'TTS voice for dialog speaker B. ' . $voicenote,
+                'example' => 'auto',
+            ],
+            'ttsdialogvoicec' => [
+                'description' => 'TTS voice for dialog speaker C. ' . $voicenote,
+                'example' => 'auto',
+            ],
+            'ttsdialoglabela' => [
+                'description' => 'Display label shown above dialog speaker A\'s lines (only used when ttsdialogvisible=1). '
+                    . 'Leave blank to use the default "Speaker A".',
+                'example' => 'Waiter',
+            ],
+            'ttsdialoglabelb' => [
+                'description' => 'Display label shown above dialog speaker B\'s lines (only used when ttsdialogvisible=1). '
+                    . 'Leave blank to use the default "Speaker B".',
+                'example' => 'Customer',
+            ],
+            'ttsdialoglabelc' => [
+                'description' => 'Display label shown above dialog speaker C\'s lines (only used when ttsdialogvisible=1). '
+                    . 'Leave blank to use the default "Speaker C".',
+                'example' => 'Waiter 2',
+            ],
+            'ttsdialogvisible' => [
+                'description' => 'Whether the dialog text is shown to the learner.',
+                'options' => [
+                    ['value' => '0', 'meaning' => 'Audio only, dialog text is hidden (default)'],
+                    ['value' => '1', 'meaning' => 'Show the dialog text'],
+                ],
+            ],
+            'textarea' => [
+                'description' => 'A rich text content block shown within the item content area, left-aligned with '
+                    . 'line breaks preserved (HTML or plain text). Prefer this over "text" for anything longer than '
+                    . 'a single line - a reading passage, or a dialog with speaker turns - which renders poorly in '
+                    . 'the centered "text" heading.',
+            ],
+            'ttspassage' => [
+                'description' => 'A reading passage displayed sentence by sentence, each sentence with its own '
+                    . 'TTS audio player so the learner can listen while reading. Use this (rather than "tts") '
+                    . 'for longer passages. Blank lines become paragraph breaks.',
+                'example' => 'The sun rises in the east. In the evening it sets in the west.',
+            ],
+            'ttspassagevoice' => [
+                'description' => 'The TTS voice that reads the ttspassage sentences. ' . $voicenote,
+                'example' => 'auto',
+            ],
+            'ttspassagespeed' => [
+                'description' => 'Reading speed for the ttspassage audio.',
+                'options' => [
+                    ['value' => 'normal', 'meaning' => 'Normal speed (default; any unrecognised value also maps to normal)'],
+                    ['value' => 'slow', 'meaning' => 'Slow reading speed'],
+                    ['value' => 'veryslow', 'meaning' => 'Very slow reading speed'],
+                ],
+            ],
+            'ytid' => [
+                'description' => 'A YouTube video to show as the item media prompt: a video id (e.g. "dQw4w9WgXcQ") '
+                    . 'or a full YouTube URL.',
+                'example' => 'dQw4w9WgXcQ',
+            ],
+            'ytstart' => [
+                'description' => 'Start point of the YouTube clip, in seconds from the beginning of the video.',
+                'example' => '30',
+            ],
+            'ytend' => [
+                'description' => 'End point of the YouTube clip, in seconds from the beginning of the video. '
+                    . '0 = play to the end.',
+                'example' => '90',
+            ],
+            'iframe' => [
+                'description' => 'Raw iframe/embed code to show as the item media prompt. '
+                    . 'Prefer ytid for YouTube videos and the tts fields for audio.',
+            ],
+            'audiofname' => [
+                'description' => 'Audio story image entry times: one HH:MM:SS timestamp per line, in image order, '
+                    . 'giving the point in the narration at which each numbered image (1.<ext>, 2.<ext>, ... in the '
+                    . constants::AUDIOSTORY . ' file area) should appear. Only used when the item is an audio story.',
+                'example' => "00:00:00\n00:00:10\n00:00:20",
+            ],
+            'audiostoryzoom' => [
+                'description' => 'Ken Burns style zoom and pan effect applied to the audio story images.',
+                'options' => [
+                    ['value' => (string) constants::ZOOMANDPAN_NONE, 'meaning' => 'No zoom or pan'],
+                    ['value' => (string) constants::ZOOMANDPAN_LITE, 'meaning' => 'Subtle zoom and pan (default)'],
+                    ['value' => (string) constants::ZOOMANDPAN_MEDIUM, 'meaning' => 'Medium zoom and pan'],
+                    ['value' => (string) constants::ZOOMANDPAN_MORE, 'meaning' => 'Strong zoom and pan'],
+                ],
+            ],
+            'nativelangchooser' => [
+                'description' => 'Whether to show a native language chooser on the item. When enabled the learner '
+                    . 'picks their first language, and that choice is remembered and reused for translations, '
+                    . 'definitions and feedback elsewhere in the activity. Accepts yes/no (or 1/0).',
+                'options' => [
+                    ['value' => '0', 'meaning' => 'No native language chooser (default)'],
+                    ['value' => '1', 'meaning' => 'Show the native language chooser'],
+                ],
+            ],
+            'timelimit' => [
+                'description' => 'Time limit for the item in seconds. 0 = no time limit.',
+                'example' => '60',
+            ],
+            'layout' => [
+                'description' => 'Position of the media/prompt area relative to the item content.',
+                'options' => [
+                    ['value' => 'horizontal', 'meaning' => 'Media beside the content'],
+                    ['value' => 'vertical', 'meaning' => 'Media above the content'],
+                    ['value' => 'magazine', 'meaning' => 'Magazine style layout'],
+                    ['value' => 'auto', 'meaning' => 'Automatic (default; any unrecognised value also maps to auto)'],
+                ],
+            ],
+        ];
+
+        $specs = [];
+        foreach ($jsonnames as $jsonname) {
+            // Skip a requested field that has no prose entry, or that this item type does not have as a
+            // keycolumn (e.g. a subtype that removed a base column) - these are legitimate absences.
+            if (!isset($catalog[$jsonname]) || !isset($keycolsbyjsonname[$jsonname])) {
+                continue;
+            }
+            $specs[$jsonname] = static::aigen_seed_field_spec($jsonname, $catalog[$jsonname], $keycolsbyjsonname);
+        }
+        return $specs;
+    }
+
+    /**
+     * Builds a map of the item type's keycolumns keyed by their jsonname (import field name).
+     *
+     * @return array jsonname => keycolumn definition
+     */
+    protected static function aigen_keycolumns_by_jsonname() {
+        $map = [];
+        foreach (static::get_keycolumns() as $keycol) {
+            $map[$keycol['jsonname']] = $keycol;
+        }
+        return $map;
+    }
+
+    /**
+     * Builds the field specs (keyed by jsonname) shared by the sentence gapfill family
+     * (typinggapfill, listeninggapfill, speakinggapfill). Each type appends its own fields
+     * and may tweak these descriptions.
+     *
+     * @return array field specs keyed by jsonname
+     */
+    protected static function aigen_gapfill_shared_field_specs() {
+        $keycolsbyjsonname = static::aigen_keycolumns_by_jsonname();
+        $specs = [];
+        $shared = [
+            'sentences' => [
+                'required' => true,
+                'description' => 'The gapfill sentences, as an array of strings, one sentence per entry. '
+                    . 'In each sentence enclose the gap letters in square brackets - a whole word ("The [dog] barks") '
+                    . 'or part of a word ("This is my d[og]"). A hint can follow the sentence after a pipe, '
+                    . 'e.g. "This is my d[og]|a common pet". Hints can be in the learner\'s native language.',
+                'example' => '["Can you play any musical in[struments]?|things like guitars and pianos"]',
+            ],
+            'allowretry' => [
+                'description' => 'Whether the learner can submit new attempts when their response was not correct.',
+                'options' => [
+                    ['value' => '0', 'meaning' => 'One attempt (default)'],
+                    ['value' => '1', 'meaning' => 'Allow retries'],
+                ],
+            ],
+            'shuffleorder' => [
+                'description' => 'Whether the sentence order is randomized for each learner. Each sentence keeps '
+                    . 'its matching image and audio.',
+                'options' => [
+                    ['value' => '0', 'meaning' => 'Keep the authored order (default)'],
+                    ['value' => '1', 'meaning' => 'Shuffle the sentence order'],
+                ],
+            ],
+            'hidestartpage' => [
+                'description' => 'Whether the activity begins as soon as it has loaded, instead of showing a '
+                    . 'start/splash page first.',
+                'options' => [
+                    ['value' => '0', 'meaning' => 'Show the start page (default)'],
+                    ['value' => '1', 'meaning' => 'Start immediately'],
+                ],
+            ],
+            'hintrtl' => [
+                'description' => 'Display the hints in right-to-left format (for hints written in an RTL language '
+                    . 'such as Arabic or Hebrew).',
+                'options' => [
+                    ['value' => '0', 'meaning' => 'Left-to-right hints (default)'],
+                    ['value' => '1', 'meaning' => 'Right-to-left hints'],
+                ],
+            ],
+        ];
+        foreach ($shared as $jsonname => $overlay) {
+            // A gapfill subtype that does not have this shared keycolumn simply omits it.
+            if (!isset($keycolsbyjsonname[$jsonname])) {
+                continue;
+            }
+            $specs[$jsonname] = static::aigen_seed_field_spec($jsonname, $overlay, $keycolsbyjsonname);
+        }
+        return $specs;
+    }
+
+    /**
+     * Builds one field spec for the agent-facing import spec: type/required/default are seeded
+     * from get_keycolumns() (looked up by jsonname), then the overlay (description/options/example,
+     * and optionally a required override) is merged on top.
+     *
+     * A per-type override's own-field loop passes jsonnames it knows exist, so an unknown jsonname
+     * (a typo or a renamed keycolumn) is a coding error and throws - otherwise a null would reach the
+     * external structure and make the whole item type's details unfetchable. The shared helpers that
+     * may legitimately request an absent field membership-check before calling this.
+     *
+     * @param string $jsonname the import field name as used in get_keycolumns
+     * @param array $overlay description/options/example (and optionally a required override)
+     * @param array|null $keycolsbyjsonname prebuilt jsonname => keycolumn map (built here when null)
+     * @return array the field spec
+     * @throws \coding_exception if the jsonname is not a keycolumn of this item type
+     */
+    protected static function aigen_seed_field_spec($jsonname, $overlay, ?array $keycolsbyjsonname = null) {
+        if ($keycolsbyjsonname === null) {
+            $keycolsbyjsonname = static::aigen_keycolumns_by_jsonname();
+        }
+        if (!isset($keycolsbyjsonname[$jsonname])) {
+            throw new \coding_exception(
+                'aigen import spec references unknown import field "' . $jsonname . '" for ' . static::class
+            );
+        }
+        $keycol = $keycolsbyjsonname[$jsonname];
+        return array_merge([
+            'jsonname' => $jsonname,
+            'type' => $keycol['type'],
+            'required' => empty($keycol['optional']),
+            'default' => self::aigen_stringify_value($keycol['default']),
+        ], $overlay);
+    }
+
+    /**
+     * Renders a keycolumn default (which may be null, an array, a bool etc) as the string
+     * representation used in the agent-facing import spec.
+     *
+     * @param mixed $value the keycolumn default
+     * @return string
+     */
+    protected static function aigen_stringify_value($value) {
+        if ($value === null) {
+            return '';
+        }
+        if (is_array($value)) {
+            return json_encode($value);
+        }
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+        return (string) $value;
+    }
+
+    /**
      * Builds the prompt for the AI helper in the code editor.
      *
      * @param string $language The language of the code (e.g., 'yarn', 'markdown', 'html').
@@ -439,6 +809,7 @@ abstract class item implements \templatable, \renderable {
         $testitem->correctanswer = $this->itemrecord->correctanswer;
         $testitem->id = $this->itemrecord->id;
         $testitem->type = $this->itemrecord->type;
+        $testitem->boxedlayout = $this->uses_boxed_layout();
         $testitem->name = $this->itemrecord->name;
         $testitem->timelimit = $this->itemrecord->timelimit;
         if ($this->forcetitles) {
@@ -549,17 +920,17 @@ abstract class item implements \templatable, \renderable {
                     $startchars = \core_text::substr($theline, 0, 2);
                     switch ($startchars) {
                         case 'A)':
-                            $speaker = "a";
+                            $speaker = 'a';
                             $voice = $itemrecord->{constants::TTSDIALOGVOICEA};
                             $thetext = \core_text::substr($theline, 2);
                             break;
                         case 'B)':
-                            $speaker = "b";
+                            $speaker = 'b';
                             $voice = $itemrecord->{constants::TTSDIALOGVOICEB};
                             $thetext = \core_text::substr($theline, 2);
                             break;
                         case 'C)':
-                            $speaker = "c";
+                            $speaker = 'c';
                             $voice = $itemrecord->{constants::TTSDIALOGVOICEC};
                             $thetext = \core_text::substr($theline, 2);
                             break;
@@ -584,7 +955,31 @@ abstract class item implements \templatable, \renderable {
                         continue;
                     }
                     $lineset = new \stdClass();
+                    $lineset->index = count($linesdata);
                     $lineset->speaker = $speaker;
+                    $lineset->issoundeffect = ($speaker === "soundeffect");
+                    // Speaker blocks are left aligned; B) is indented, C) is indented half as much.
+                    // Sound effects are a small centered marker. Labels come from the speakera/b/c
+                    // language strings.
+                    switch ($speaker) {
+                        case 'b':
+                            $lineset->indentclass = 'ttsdialog_indent_b';
+                            $lineset->label = self::ttsdialog_label($itemrecord, constants::TTSDIALOGLABELB, 'speakerb');
+                            break;
+                        case 'c':
+                            $lineset->indentclass = 'ttsdialog_indent_c';
+                            $lineset->label = self::ttsdialog_label($itemrecord, constants::TTSDIALOGLABELC, 'speakerc');
+                            break;
+                        case 'soundeffect':
+                            $lineset->indentclass = '';
+                            $lineset->label = '';
+                            break;
+                        case 'a':
+                        default:
+                            $lineset->indentclass = '';
+                            $lineset->label = self::ttsdialog_label($itemrecord, constants::TTSDIALOGLABELA, 'speakera');
+                            break;
+                    }
                     $lineset->speakertext = $thetext;
                     $lineset->voice = $voice;
                     $voiceoptions = constants::TTS_NORMAL;
@@ -597,6 +992,28 @@ abstract class item implements \templatable, \renderable {
                 }
             }
             $testitem->ttsdialoglines = $linesdata;
+
+            // Translation support (mirrors the fiction item type). The translate icon
+            // per line lets a learner translate a line into their native language.
+            $ttsdialogsourcelang = $this->moduleinstance->ttslanguage;
+            $ttsdialognativelang = $this->moduleinstance->nativelang;
+            if (get_config(constants::M_COMPONENT, 'setnativelanguage')) {
+                $userprefnativelanguage = get_user_preferences(constants::NATIVELANG_PREF);
+                if (!empty($userprefnativelanguage)) {
+                    $ttsdialognativelang = $userprefnativelanguage;
+                }
+            }
+            $testitem->ttsdialogcmid = $this->context->instanceid;
+            $testitem->ttsdialogitemid = $this->itemrecord->id;
+            $testitem->ttsdialogsourcelang = $ttsdialogsourcelang;
+            $testitem->ttsdialognativelang = $ttsdialognativelang;
+            // Only offer translation when a native language is set and it differs from the target language.
+            $basesource = strtolower(explode('-', (string) $ttsdialogsourcelang)[0]);
+            $basedest = strtolower(explode('-', (string) $ttsdialognativelang)[0]);
+            $testitem->ttsdialogcantranslate = !empty($ttsdialognativelang) && $basesource !== $basedest;
+            // Translation panel direction follows the translation (native) language, which is
+            // independent of the dialog's target language direction (the {{rtl}} class).
+            $testitem->ttsdialognativelangrtl = utils::is_rtl($ttsdialognativelang) ? constants::M_CLASS . '_rtl' : '';
         } // end of tts dialog
 
         // Native Language Chooser.
@@ -727,8 +1144,17 @@ abstract class item implements \templatable, \renderable {
 
         // Question TextArea.
         if (!empty($itemrecord->{constants::QUESTIONTEXTAREA}) && !empty(trim($itemrecord->{constants::QUESTIONTEXTAREA}))) {
-            $testitem->itemtextarea = nl2br($itemrecord->{constants::QUESTIONTEXTAREA});
-            $testitem->itemtextarea = format_text($testitem->itemtextarea, FORMAT_MOODLE, $editoroptions);
+            $itemtextarea = $itemrecord->{constants::QUESTIONTEXTAREA};
+            // Editor content is stored as HTML, but imported/legacy content may be plain
+            // text whose line breaks would otherwise be lost.
+            if (
+                stripos($itemtextarea, '<p') === false
+                && stripos($itemtextarea, '<br') === false
+                && stripos($itemtextarea, '<div') === false
+            ) {
+                $itemtextarea = nl2br($itemtextarea);
+            }
+            $testitem->itemtextarea = format_text($itemtextarea, FORMAT_HTML, $editoroptions);
         }
 
         // Show text prompt or dots, for listen and repeat really.
@@ -742,6 +1168,23 @@ abstract class item implements \templatable, \renderable {
         }
 
         return $testitem;
+    }
+
+    /**
+     * Resolve a TTS dialog speaker label: the author's custom label if set, otherwise
+     * the corresponding speakera/b/c language string.
+     *
+     * @param \stdClass $itemrecord The item record (already unpacked via unpack_ttsdialogopts).
+     * @param string $labelcolumn The TTSDIALOGLABEL* opts key.
+     * @param string $defaultstringkey The fallback language string key (speakera/b/c).
+     * @return string
+     */
+    protected static function ttsdialog_label($itemrecord, $labelcolumn, $defaultstringkey) {
+        $label = isset($itemrecord->{$labelcolumn}) ? trim($itemrecord->{$labelcolumn}) : '';
+        if ($label !== '') {
+            return $label;
+        }
+        return get_string($defaultstringkey, constants::M_COMPONENT);
     }
 
     protected function get_text_answer_elements($testitem) {
@@ -775,8 +1218,8 @@ abstract class item implements \templatable, \renderable {
         // layout
         $testitem->layout = $this->itemrecord->{constants::LAYOUT};
         if ($testitem->layout == constants::LAYOUT_AUTO) {
-            // if its not a page or shortanswer, any big content item will make it horizontal layout
-            if ($testitem->type !== constants::TYPE_PAGE && $testitem->type !== constants::TYPE_SHORTANSWER) {
+            // unless the item type prefers to stay stacked, any big content item makes it horizontal layout
+            if (!$this->autolayout_prefers_vertical()) {
                 if ($textset || $imageset || $videoset || $iframeset || $ytclipset) {
                     $testitem->horizontal = true;
                 }
@@ -990,7 +1433,7 @@ abstract class item implements \templatable, \renderable {
             // if that is a problem, its probably better to fix the sentence.
             // if (preg_match_all('/\[[^\]]+\]|[^\s]+/', $sentence, $matches)) {
             // We use a negated character class [^\s\.\,\!\?\;\:\)\}\"\]]* instead of [^\s]*
-            // so that standard punctuation (like ?) is NOT glued to the gap, but alphanumeric 
+            // so that standard punctuation (like ?) is NOT glued to the gap, but alphanumeric
             // suffixes (like in [fath]er) ARE glued.
             if (preg_match_all('/\[[^\]]+\][^\s\.\,\!\?\;\:\)\}\"\]]*|[^\s]+/', $sentence, $matches)) {
                 $words = $matches[0];
@@ -1885,16 +2328,115 @@ abstract class item implements \templatable, \renderable {
         return true;
     }
 
+    /**
+     * Is this item type experimental?
+     * Experimental item types are only available when $CFG->minilesson_experimental is set.
+     * Item types that are not ready for general use override this to return true.
+     *
+     * @return bool
+     */
+    public static function is_experimental() {
+        return false;
+    }
+
     public static function is_configured() {
         global $CFG;
-        $experimentalitems[] = constants::TYPE_SMARTFRAME;
-        $experimentalitems[] = constants::TYPE_COMPQUIZ;
-        $experimentalitems[] = constants::TYPE_CONVERSATION;
-        $experimentalitems[] = constants::TYPE_DICTATIONCHAT;
-        if (in_array(static::get_itemname(), $experimentalitems)) {
+        if (static::is_experimental()) {
             return !empty($CFG->minilesson_experimental);
         }
         return true;
+    }
+
+    /**
+     * When the item's layout is set to "auto", a big content element (text, image, video,
+     * iframe or YouTube clip) switches the item to horizontal layout. Item types whose content
+     * should stay stacked vertically no matter how much of it there is (e.g. content pages)
+     * override this to return true.
+     *
+     * @return bool
+     */
+    public function autolayout_prefers_vertical() {
+        return false;
+    }
+
+    /**
+     * Is this item type's response a spoken one, for the purposes of AI grading?
+     * True for spoken item types (the recording is graded); written item types
+     * (e.g. free writing) override this to return false.
+     *
+     * @return bool
+     */
+    public static function ai_grade_uses_speech() {
+        return true;
+    }
+
+    /**
+     * Does this item type collect an extended piece of student work (a spoken or written
+     * response) that later items can be given as context? Item types that do (e.g. free
+     * speaking, free writing) override this to return true.
+     *
+     * @return bool
+     */
+    public static function produces_student_text() {
+        return false;
+    }
+
+    /**
+     * Can this item type's content be sent for translation?
+     * Item types that offer translation natively (e.g. fiction) override this to return true.
+     * Note that any item carrying a TTS dialog media prompt is translatable regardless.
+     *
+     * @return bool
+     */
+    public static function supports_translation() {
+        return false;
+    }
+
+    /**
+     * Add anything this item type needs on a page that displays or edits it - most often CSS or
+     * JS shipped by the item type itself. Called once per item type present in the lesson.
+     * Item types with such requirements override this.
+     *
+     * @param \moodle_page $page The page to add requirements to.
+     * @return void
+     */
+    public static function page_requirements(\moodle_page $page) {
+    }
+
+    /**
+     * Should this item type's splash screen and activity wrapper be drawn as a centred white
+     * card (shadow, rounded corners) rather than filling the item area? Item types with a splash
+     * screen generally want this, and override it to return true.
+     *
+     * @return bool
+     */
+    public function uses_boxed_layout() {
+        return false;
+    }
+
+    /**
+     * Render a preview of this item from unsaved authoring form data, for the "preview" button
+     * on the item's authoring form. Item types that offer a preview (e.g. slides) override this;
+     * the default is no preview.
+     *
+     * @param array $formdata The parsed authoring form data.
+     * @return string HTML fragment, or '' for no preview.
+     */
+    public static function render_preview($formdata) {
+        return '';
+    }
+
+    /**
+     * Return the plain text of this item, for use by the speech test (which needs a sample of
+     * the lesson's language content). Item types whose text is not simply the item text
+     * (e.g. the gapfill types, whose text carries gap markup) override this.
+     *
+     * @param \stdClass $itemrecord The item's DB record.
+     * @param string $default The text the caller derived from the item record.
+     * @return string
+     */
+    public function get_speechtester_text($itemrecord, $default) {
+        return $default;
     }
 
     public static function get_plugininfo(): minilessonitem {

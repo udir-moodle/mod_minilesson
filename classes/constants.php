@@ -126,6 +126,7 @@ class constants {
 
     const TYPE_MULTIAUDIO = 'multiaudio';
     const TYPE_MULTICHOICE = 'multichoice';
+    const TYPE_MULTICHOICEQUIZ = 'multichoicequiz';
     const TYPE_PAGE = 'page';
     const TYPE_DICTATIONCHAT = 'dictationchat';
     const TYPE_LGAPFILL = 'listeninggapfill';
@@ -183,6 +184,9 @@ class constants {
     const TTSDIALOGVOICEA = 'itemttsdialogvoicea';
     const TTSDIALOGVOICEB = 'itemttsdialogvoiceb';
     const TTSDIALOGVOICEC = 'itemttsdialogvoicec';
+    const TTSDIALOGLABELA = 'itemttsdialoglabela';
+    const TTSDIALOGLABELB = 'itemttsdialoglabelb';
+    const TTSDIALOGLABELC = 'itemttsdialoglabelc';
     const TTSDIALOGVISIBLE = 'itemttsdialogvisible';
     const TTSPASSAGEVOICE = 'itemttspassagevoice';
     const TTSPASSAGESPEED = 'itemttspassagespeed';
@@ -239,7 +243,7 @@ class constants {
     const MAXANSWERS = 4;
     const MAXCUSTOMTEXT = 7;
     const MAXCUSTOMDATA = 5;
-    const MAXCUSTOMINT = 10;
+    const MAXCUSTOMINT = 15;
 
     const ITEMTEXTAREA_EDOPTIONS = ['trusttext' => 0, 'noclean' => 1, 'maxfiles' => 0];
     const READSENTENCE = 'customint2';
@@ -683,6 +687,15 @@ class constants {
 
     const MAX_AI_PROMPTS = 6;
 
+    /**
+     * The item types that ship with MiniLesson.
+     *
+     * This is NOT the list of item types available on a site and must not be used as one - item
+     * types are subplugins, so a site can have item types that are not listed here, and listing
+     * an item type here does not install it. To enumerate item types use
+     * {@see \mod_minilesson\utils::fetch_itemtypes()}, which reads the installed subplugins.
+     * Retained for reference and for backwards compatibility with existing callers.
+     */
     const ITEMTYPES = [
         self::TYPE_PAGE,
         self::TYPE_MULTICHOICE,
@@ -708,7 +721,9 @@ class constants {
         self::TYPE_SLIDES,
         self::TYPE_FICTION,
         self::TYPE_SHADOW,
+        self::TYPE_CARDS,
         self::TYPE_WORDCARDS,
+        self::TYPE_MULTICHOICEQUIZ,
       // constants::TYPE_SMARTFRAME,
       // constants::TYPE_COMPQUIZ,
       // constants::TYPE_CONVERSATION,
