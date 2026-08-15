@@ -458,6 +458,10 @@ $string['wordcards'] = 'Word Cards';
 $string['error:invalidyoutubeurl'] = 'The YouTube URL or video ID is not valid.';
 $string['error:noyoutubetranscript'] = 'No subtitles are available for this YouTube video.';
 $string['error:youtubefetchfailed'] = 'Could not fetch data from YouTube. Please try again later.';
+$string['error:youtubeblocked'] = 'YouTube would not serve subtitles to this server. This usually means it is refusing automated requests from the server\'s IP address rather than anything being wrong with the video. You can still add subtitles by copying them into the subtitle box by hand. (YouTube said: {$a})';
+$string['error:youtubeagerestricted'] = 'This YouTube video is age restricted, so its subtitles cannot be fetched.';
+$string['error:youtubeunplayable'] = 'YouTube will not play this video, so its subtitles cannot be fetched. ({$a})';
+$string['error:notranscripttimestamps'] = 'No timestamps were found in the pasted text. On YouTube, open the transcript panel, switch timestamps on from its menu, then copy the whole transcript.';
 
 $string['transcriber'] = 'Transcriber';
 $string['transcriber_details'] = 'The transcription engine to use';
@@ -885,7 +889,6 @@ $string['passagetoread'] = 'Passage to read';
 $string['passagewithgaps'] = 'Passage with gaps';
 // Spacegame.
 $string['achievedhighscoreof'] = 'Achieved a high score of {$a}';
-$string['addtomywords'] = "Click to add to My Words";
 $string['emptyquiz'] = 'There are no multiple choice questions in the selected category.';
 $string['endofgame'] = 'Your score was: {$a}. Press space or click to restart.';
 $string['fullscreen'] = 'Fullscreen';
@@ -897,7 +900,6 @@ $string['notyetplayed'] = 'Not yet played';
 $string['playedxtimeswithhighscore'] = 'Played {$a->times} times. The last game ended with a high score of {$a->score}';
 $string['playerscores'] = 'Player scores';
 $string['points'] = 'Points';
-$string['removefrommywords'] = "Click to remove from My Words";
 $string['removescores'] = 'Remove all user scores';
 $string['score'] = 'Score';
 $string['scoreheader'] = 'Score';

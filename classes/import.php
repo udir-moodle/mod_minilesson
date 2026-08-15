@@ -188,16 +188,19 @@ class import {
                         } else {
                             // If generation failed for some reason, fall back (so we dont lose it all).
                             // First lets see if its array-like string (eg "line1,line2,line3") because it happens.
-                            $commacount = substr_count($itemdata->{$coldef['jsonname']}, ',');
-                            if ($commacount > 2) {
-                                $line[] = str_replace(',', PHP_EOL, $itemdata->{$coldef['jsonname']});
+                            // But only if it is not already line separated, and has no pipe delimited structure,
+                            // because the fields of such a line (eg wordshuffle distractors) may contain commas.
+                            $fallback = (string) $itemdata->{$coldef['jsonname']};
+                            $haslines = preg_match('/\R/', $fallback);
+                            $haspipes = strpos($fallback, '|') !== false;
+                            if (!$haslines && !$haspipes && substr_count($fallback, ',') > 2) {
+                                $line[] = str_replace(',', PHP_EOL, $fallback);
                             } else {
-                                // If its hopeless just put the string in one line and hope the teacher can fix it up.
-                                $line[] = $itemdata->{$coldef['jsonname']};
+                                // Its already line separated or structured, or its hopeless.
+                                // Either way pass it through as is and hope the teacher can fix it up.
+                                $line[] = $fallback;
                             }
-
                         }
-
                     } else {
                         // This is the normal case. Just join the array into lines. That is how we store stringarrays in CSV.
                         $line[] = join(PHP_EOL, $itemdata->{$coldef['jsonname']});
@@ -355,6 +358,40 @@ class import {
         return false;
     }
 
+    /**
+     * Resolve a human-readable voice name (eg "Alloy (en)") to its DB voicecode.
+     *
+     * Voice names are only guaranteed unique within a single language's list in
+     * constants::ALL_VOICES - eg "Alloy (en)" is shared by en-GB, en-AU, en-NZ etc, each
+     * with their own voicecode. $this->allvoices is a single flat map built across every
+     * language, so a name shared by several languages resolves to whichever language was
+     * inserted last. To avoid that, look in the current lesson's own language first, and
+     * only fall back to the flat cross-language map if that language has no match.
+     *
+     * @param string $name
+     * @return string|null the voicecode, or null if no match was found anywhere
+     */
+    private function resolve_voice_code($name) {
+        $name = strtolower($name);
+        $langcode = $this->moduleinstance->ttslanguage;
+
+        if (array_key_exists($langcode, constants::ALL_VOICES)) {
+            foreach (constants::ALL_VOICES[$langcode] as $voicecode => $voicename) {
+                if (strtolower($voicename) === $name || strtolower($voicename) === $name . '_g') {
+                    return $voicecode;
+                }
+            }
+        }
+
+        if (array_key_exists($name, $this->allvoices)) {
+            return $this->allvoices[$name];
+        } else if (in_array($name . '_g', $this->allvoices)) {
+            return $this->allvoices[$name . '_g'];
+        }
+
+        return null;
+    }
+
     public function preprocess_import_data($line, $keycolumns) {
 
         // return value init
@@ -394,15 +431,14 @@ class import {
                         // this will return the name, not the key
                         $value = utils::fetch_auto_voice($this->moduleinstance->ttslanguage);
                         // here we go from name to key
-                        $value = $this->allvoices[strtolower($value)];
+                        $value = $this->resolve_voice_code($value);
                     } else {
-                        if (array_key_exists(strtolower($value), $this->allvoices)) {
-                            $value = $this->allvoices[strtolower($value)];
-                        } else if (in_array(strtolower($value) . '_g', $this->allvoices)) {
-                            $value = $this->allvoices[strtolower($value) . '_g'];
+                        $resolvedcode = $this->resolve_voice_code($value);
+                        if ($resolvedcode !== null) {
+                            $value = $resolvedcode;
                         } else {
                             // Unknown voice, so fall back to the auto voice for the lesson language.
-                            $value = utils::fetch_auto_voice($this->moduleinstance->ttslanguage);
+                            $value = $this->resolve_voice_code(utils::fetch_auto_voice($this->moduleinstance->ttslanguage));
                         }
                     }
                     break;
