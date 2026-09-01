@@ -28,7 +28,13 @@
  * openapi.php; this file is just the MCP/JSON-RPC front-end.
  *
  * Methods: initialize, ping and notifications/* need no auth; tools/list and tools/call
- * require the token (X-API-Key header, or Authorization: Bearer).
+ * require the token (X-API-Key header, or Authorization: Bearer - the latter is what an
+ * OAuth-issued access token arrives as, since it is just a real web service token minted
+ * via the shared local_oauthmcp authorization server, if that plugin is installed). An
+ * unauthenticated or invalid attempt gets a 401 with a resource_metadata challenge (RFC 9728)
+ * pointing OAuth-capable clients at oauth_resource_metadata.php to discover the flow - only
+ * when local_oauthmcp is present, since without it there is no OAuth flow to discover and the
+ * static-token path (X-API-Key) is unaffected either way.
  *
  * @package    mod_minilesson
  * @copyright  2026 Justin Hunt (poodllsupport@gmail.com)
@@ -88,6 +94,68 @@ function mcp_error($id, int $code, string $message): array {
 }
 
 /**
+ * The name this server identifies itself as in the MCP `initialize` response - includes the
+ * site host so a client connected to several Moodle sites can tell them apart in its own UI.
+ *
+ * @return string
+ */
+function mcp_server_name(): string {
+    global $CFG;
+    $host = parse_url($CFG->wwwroot, PHP_URL_HOST) ?: $CFG->wwwroot;
+    return "Poodll MiniLesson on {$host}";
+}
+
+/**
+ * Send the 401 challenge header. When local_oauthmcp is installed, points OAuth-capable
+ * clients at the RFC 9728 protected resource metadata document so they can discover the
+ * authorization server and start the OAuth flow instead of giving up on a bare 401; when it
+ * is not installed, sends a plain challenge with no OAuth discovery pointer (there is no
+ * OAuth flow to discover) - the static-token path this header accompanies is unaffected
+ * either way.
+ *
+ * @return void
+ */
+function mcp_send_auth_challenge(): void {
+    global $CFG;
+    if (class_exists('\local_oauthmcp\api')) {
+        header(
+            'WWW-Authenticate: Bearer resource_metadata="' . $CFG->wwwroot . '/mod/minilesson/oauth_resource_metadata.php"',
+            true,
+            401
+        );
+        return;
+    }
+    header('WWW-Authenticate: Bearer', true, 401);
+}
+
+/**
+ * Serve RFC 9728/8414 discovery JSON (and exit) if this GET's PATH_INFO asks for it and
+ * local_oauthmcp is installed - covers clients that append ".well-known/..." onto the
+ * resource's own URL (mcp.php) rather than inserting it at the domain root, e.g. the real
+ * request "GET /mod/minilesson/mcp.php/.well-known/openid-configuration" observed from a
+ * real client. Returns normally (falls through to the existing 405) for any other GET, or
+ * when local_oauthmcp is absent.
+ *
+ * @return void
+ */
+function mcp_maybe_send_wellknown_discovery(): void {
+    global $CFG;
+    if (!class_exists('\local_oauthmcp\api')) {
+        return;
+    }
+    $pathinfo = $_SERVER['PATH_INFO'] ?? '';
+    if (strpos($pathinfo, 'oauth-protected-resource') !== false) {
+        $data = \local_oauthmcp\api::resource_metadata($CFG->wwwroot . '/mod/minilesson/mcp.php');
+        if ($data !== null) {
+            mcp_send($data);
+        }
+    }
+    if (strpos($pathinfo, 'oauth-authorization-server') !== false || strpos($pathinfo, 'openid-configuration') !== false) {
+        mcp_send(\local_oauthmcp\api::authorization_server_metadata());
+    }
+}
+
+/**
  * Server-level instructions surfaced to the model on initialize (the three request kinds
  * and how to route them; the full workflow detail is in the tool descriptions / openapi.php).
  *
@@ -106,11 +174,27 @@ function mcp_instructions(): string {
         '(3) A DESCRIBED LESSON: check aigen_list_templates first and use a template if one fits',
         '(templates can generate media); only hand-compose if none fits.',
         'Only item types where aigen_list_itemtypes reports hasimportdocs=true can be hand-composed.',
+        'PICK THE MOST SPECIFIC TEMPLATE: several templates produce the same item type, and each one',
+        'lists its siblings in "variants" with a "control" level - "supplied" (your text is used',
+        'verbatim), "derived" (the AI marks up text you supply) or "generated" (the AI invents the',
+        'content). For every teaching point you have already decided - which words are gapped or',
+        'shuffled, which answer is correct, the translation language, the grammar being practised -',
+        'check the template has an input that carries it. If none does, the AI decides it for you and',
+        'may contradict the lesson aim: move to a higher-control variant, or compose the item directly.',
+        'Only take a "generated" template where the user has genuinely left that detail open.',
         'PLAN FIRST: before calling any tool that creates or imports (aigen_create_empty_lesson,',
         'aigen_create_add_items_to_lesson, aigen_import_items_json), show the user a plan and wait for',
         'their approval. For direct-compose, list each item with its actual content (question, answers,',
-        'text); for templates, show the template and the inputs (topic, level, theme, keywords); and state',
-        'the target course/title. Create only after they approve, and fold in any changes they request.',
+        'text); for templates, list EVERY input the template declares with the exact value you will send,',
+        'each marked (from the user), (your choice) or (BLANK) - a choice you made on the user\'s behalf',
+        'is still a choice, including defaults you accepted and inputs you are leaving empty. State the',
+        'target course/title. Create only after they approve, and fold in any changes they request.',
+        'NEVER send a required input empty. If the user has not told you what it needs (a native',
+        'language, a source text, a level), ask before creating - creation is rejected when a required',
+        'input is empty, and a template that does not check would produce silently broken content, like',
+        'a vocabulary card whose translation is a copy of the word. Where you picked a value the user',
+        'expressed no preference about (image style, level, voice), name your choice and offer the',
+        'alternatives rather than presenting it as settled.',
         'Exception: if the user has said to just go ahead (or to skip the review), create without pausing.',
         'After importing, read the per-item errors array and resubmit only the rejected items.',
     ]);
@@ -120,6 +204,9 @@ function mcp_instructions(): string {
 // server -> client SSE stream, so GET (and anything else) is not supported.
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method !== 'POST') {
+    if ($method === 'GET') {
+        mcp_maybe_send_wellknown_discovery();
+    }
     mcp_send(['error' => 'This MCP endpoint accepts POST (JSON-RPC) only'], 405);
 }
 
@@ -143,7 +230,7 @@ if ($rpcmethod === 'initialize') {
     mcp_send(mcp_result($id, [
         'protocolVersion' => MCP_PROTOCOL_VERSION,
         'capabilities' => ['tools' => new stdClass()],
-        'serverInfo' => ['name' => 'mod_minilesson aigen', 'version' => '1.0.0'],
+        'serverInfo' => ['name' => mcp_server_name(), 'version' => '1.0.0'],
         'instructions' => mcp_instructions(),
     ]));
 }
@@ -154,13 +241,13 @@ if ($rpcmethod === 'ping') {
 // Everything below (tools/*) requires an authenticated token.
 $token = facade::request_token();
 if ($token === '') {
-    header('WWW-Authenticate: Bearer', true, 401);
+    mcp_send_auth_challenge();
     mcp_send(mcp_error($id, -32001, 'Authentication required'), 401);
 }
 try {
     $authinfo = facade::authenticate($token);
 } catch (Throwable $e) {
-    header('WWW-Authenticate: Bearer', true, 401);
+    mcp_send_auth_challenge();
     mcp_send(mcp_error($id, -32001, 'Invalid or unauthorised token'), 401);
 }
 

@@ -721,6 +721,8 @@ class aimanager {
      * @return string|null The base64-encoded resized image, or null on failure.
      */
     protected static function process_image_response($responsestring) {
+        global $CFG;
+
         if (!utils::is_json($responsestring)) {
             return null;
         }
@@ -730,7 +732,10 @@ class aimanager {
         }
         $payload = json_decode($response->returnMessage);
         if (isset($payload[0]->url)) {
-            $rawdata = file_get_contents($payload[0]->url);
+            // Fallback branch - CloudPoodll normally returns the image inline as b64_json.
+            // But some model may yet return URLs.
+            require_once($CFG->libdir . '/filelib.php');
+            $rawdata = download_file_content($payload[0]->url, null, null, false, 60, 10);
         } else if (isset($payload[0]->b64_json)) {
             $rawdata = base64_decode($payload[0]->b64_json);
         } else {
@@ -949,7 +954,7 @@ class aimanager {
                 foreach ($providerinstances[$mapactionclass] as $provider) {
                     if ($provider->get_name() == $providerid) {
                         $providerinstance = $provider;
-                        $component = \core\component::get_component_from_classname(get_class($provider));
+                        $component = static::get_component_from_classname(get_class($provider));
                         $CFG->forced_plugin_settings[$component]['action_generate_text_systeminstruction'] = $actionclass::get_system_instruction();
                         $providerenabled = manager::is_action_enabled(
                             $providerid,
@@ -1024,7 +1029,20 @@ class aimanager {
         ];
     }
 
+    /**
+     * Resolve the frankenstyle component name from a PSR-4 class name.
+     *
+     * This intentionally does not delegate to \core\component /
+     * \core_component::get_component_from_classname(). The namespaced \core\component
+     * class only exists on Moodle 5.0+, and core_component::get_component_from_classname()
+     * does not exist before Moodle 4.4, so a direct reference fatals on Moodle 4.3.
+     * Every caller passes a PSR-4 / frankenstyle class name, so the first namespace
+     * segment is the component.
+     *
+     * @param string $classname
+     * @return string The component name, or '' if it could not be determined.
+     */
     public static function get_component_from_classname($classname): string {
-        return \core\component::get_component_from_classname($classname) ?? strstr(ltrim($classname, '\\'), '\\', true);
+        return strstr(ltrim($classname, '\\'), '\\', true) ?: '';
     }
 }

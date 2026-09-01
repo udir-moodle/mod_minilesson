@@ -15,18 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Defines the version of minilesson
+ * Cache definitions for mod_minilesson.
  *
+ * The OAuth-related caches (cimdclient, dcrratelimit) moved to local_oauthmcp along with the
+ * rest of the OAuth authorization server - see db/upgrade.php for the corresponding table
+ * drop.
  *
  * @package    mod_minilesson
- * @copyright  2020 Justin Hunt (poodllsupport@gmail.com)
+ * @copyright  2026 Justin Hunt (poodllsupport@gmail.com)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
-$plugin->version = 2026083103;
-$plugin->requires = 2023100900; // Requires Moodle 4.3.
-$plugin->supported = [403, 502]; // Moodle 4.3 to 5.2.
-$plugin->component = 'mod_minilesson';
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.1.52 (Build 2026083103)';
+
+$definitions = [];
