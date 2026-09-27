@@ -43,10 +43,17 @@ class itemtype extends item {
 
     public const YARN = 'customtext1';
     public const YARN_DEFAULT = "title: Start\n---\nNarrator: We're going to go on an adventure!\n\n<<jump Cave>>\n===\n\ntitle: Cave\n---\nNarrator: Let's look inside the spooky cave...\n<<jump theend>>\n===\n\ntitle: theend\n---\nNarrator: The end...\n===";
+    /**
+     * Variables the player provides or consumes, so a story may use them without declaring them.
+     * The first four are seeded into the variable storage in amd/src/itemtype.js; $score is read
+     * back out of it after the story to grade the item.
+     */
+    public const SYSTEM_VARIABLES = ['userfirstname', 'userlastname', 'userfullname', 'cantranslate', 'score'];
     public const PRESENTATION_MODE = 'customint1';
     public const FLOWTHROUGH_MESSAGES = 'customint2';
     public const SHOW_NONOPTIONS = 'customint3';
-    public const TAP_TO_TRANSLATE = 'customint4';
+    /** Whether each story message shows a read-aloud (TTS) button. Voice/speed use POLLYVOICE/POLLYOPTION. */
+    public const READALOUD = 'customint5';
     public const FILES = 'customfile1';
 
     /** @var string */
@@ -259,9 +266,14 @@ class itemtype extends item {
         // Show non-options.
         $testitem->shownonoptions = $this->itemrecord->{ self::SHOW_NONOPTIONS} ? true : false;
 
-        // Tap to translate.
-        $testitem->taptotranslate = $this->itemrecord->{ self::TAP_TO_TRANSLATE} ? true : false;
+        // Tap to translate. This follows the activity's native language translation setting.
+        $testitem->taptotranslate = !empty($this->moduleinstance->nativetranslation);
         $testitem->taptotranslatearia = get_string('fiction:taptranslatearia', constants::M_COMPONENT);
+
+        // Read aloud. Each story message can show a TTS button; the voice and speed come from
+        // get_polly_options() above, which has set usevoice/voiceoption from POLLYVOICE/POLLYOPTION.
+        $testitem->readaloud = !empty($this->itemrecord->{self::READALOUD});
+        $testitem->readaloudaria = get_string('fiction_readaloudaria', constants::M_COMPONENT);
 
         // Pass in user data for display in the story
         $testitem->userfirstname = $USER->firstname;
@@ -339,8 +351,162 @@ class itemtype extends item {
             return $error;
         }
 
+        // Everything the script can get wrong that we can see from here, reported in one go. A
+        // story is a single item, so returning one fault at a time would cost a whole rewrite per
+        // fault for whoever (or whatever) is composing it.
+        $problems = static::find_yarn_problems($yarn);
+        if (!empty($problems)) {
+            $error->col = self::YARN;
+            $error->message = get_string(
+                'error:yarnproblems',
+                constants::M_COMPONENT,
+                implode(' ', $problems)
+            );
+            return $error;
+        }
+
         // Return false to indicate no error.
         return false;
+    }
+
+    /**
+     * Structural problems in a yarn script: broken routing, unsupported syntax and undeclared
+     * variables. Only faults that would actually break the story at runtime are reported, so that
+     * a valid script is never rejected; house style rules live in the authoring guide instead.
+     *
+     * @param string $yarn the yarn script
+     * @return array human readable problem descriptions, empty when the script is sound
+     */
+    protected static function find_yarn_problems($yarn) {
+        $problems = [];
+        $lines = explode("\n", str_replace("\r\n", "\n", $yarn));
+
+        // Walk the script once, collecting the node names, and per node the lines of its body.
+        // A node group is several nodes sharing one title, each picked by its own "when:" header,
+        // so bodies accumulate under the title rather than replacing what came before: otherwise
+        // every variant but the last would escape these checks entirely.
+        $nodebodies = [];
+        $currentnode = null;
+        $inbody = false;
+        foreach ($lines as $linenum => $line) {
+            $trimmed = trim($line);
+            if (preg_match('/^title:\s*(\S+)\s*$/', $trimmed, $matches)) {
+                $currentnode = $matches[1];
+                $nodebodies[$currentnode] ??= [];
+                $inbody = false;
+                continue;
+            }
+            if ($trimmed === '---') {
+                $inbody = true;
+                continue;
+            }
+            if ($trimmed === '===') {
+                $currentnode = null;
+                $inbody = false;
+                continue;
+            }
+            if ($inbody && $currentnode !== null) {
+                $nodebodies[$currentnode][] = $line;
+            }
+        }
+
+        if (!array_key_exists('Start', $nodebodies)) {
+            $problems[] = 'There is no "title: Start" node; the story has nowhere to begin.';
+        }
+
+        // Every jump and detour must land on a node that exists. Targets built from an inline
+        // expression are skipped: their value is only known at runtime.
+        $routes = [];
+        foreach ($nodebodies as $nodename => $bodylines) {
+            $body = implode("\n", $bodylines);
+            if (preg_match_all('/<<\s*(jump|detour)\s+([^>]+?)\s*>>/', $body, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $match) {
+                    $target = $match[2];
+                    if (strpos($target, '{') !== false) {
+                        continue;
+                    }
+                    $routes[] = ['from' => $nodename, 'command' => $match[1], 'target' => $target];
+                }
+            }
+        }
+        foreach ($routes as $route) {
+            if (!array_key_exists($route['target'], $nodebodies)) {
+                $problems[] = '<<' . $route['command'] . ' ' . $route['target'] . '>> in node "'
+                    . $route['from'] . '" points at a node that does not exist.';
+            }
+        }
+
+        // A detour has to hand control back, or the story stops dead at the end of the side node.
+        $detourtargets = [];
+        foreach ($routes as $route) {
+            if ($route['command'] === 'detour') {
+                $detourtargets[$route['target']] = true;
+            }
+        }
+        foreach (array_keys($detourtargets) as $target) {
+            if (!isset($nodebodies[$target])) {
+                // Already reported as a missing target above.
+                continue;
+            }
+            if (!preg_match('/<<\s*return\s*>>/', implode("\n", $nodebodies[$target]))) {
+                $problems[] = 'Node "' . $target . '" is used as a <<detour>> but never reaches '
+                    . '<<return>>, so the story cannot continue after it.';
+            }
+        }
+
+        // A node that offers choices but never routes anywhere is a dead end: the story simply
+        // stops there. <<return>> counts as routing - that is how a detour side node hands back.
+        foreach ($nodebodies as $nodename => $bodylines) {
+            $body = implode("\n", $bodylines);
+            if (!preg_match('/^\s*->\s/m', $body)) {
+                continue;
+            }
+            if (!preg_match('/<<\s*(jump|detour|stop|return)\b/', $body)) {
+                $problems[] = 'Node "' . $nodename . '" offers choices but contains no <<jump>>, '
+                    . '<<detour>>, <<return>> or <<stop>>, so the story dead ends there.';
+            }
+        }
+
+        // Syntax this runtime does not support, which fails at parse or evaluation time.
+        if (preg_match('/<<\s*set\s+\$[\w]+\s*[-+*\/]=/', $yarn)) {
+            $problems[] = 'Compound assignment operators (+=, -=, *=, /=) are not supported; '
+                . 'write <<set $v = $v + 1>> instead.';
+        }
+
+        // An unclosed block <<once>> becomes an unclosed <<if>>, which swallows the rest of the
+        // node. Only the block form is counted: a trailing <<once>> on an option or a text line
+        // takes no <<endonce>>, so it is matched here by requiring the command to be the whole line.
+        $onceblocks = preg_match_all('/^\s*<<\s*once(?:\s+if\s+[^>]+)?\s*>>\s*$/m', $yarn);
+        $endonces = preg_match_all('/^\s*<<\s*endonce\s*>>\s*$/m', $yarn);
+        if ($onceblocks !== $endonces) {
+            $problems[] = 'There are ' . $onceblocks . ' <<once>> blocks but ' . $endonces
+                . ' <<endonce>> commands. Every <<once>> on a line of its own must be closed with '
+                . '<<endonce>>; a <<once>> at the end of an option or a text line must not be.';
+        }
+
+        // A variable that is only ever read is always undefined, whatever path the learner takes.
+        // Only never-written variables are reported: <<set>> initialises one just as well as
+        // <<declare>> does, and plenty of sound stories open a node by setting their variables.
+        $written = [];
+        if (preg_match_all('/<<\s*(?:declare|set)\s+\$([\w]+)/', $yarn, $matches)) {
+            $written = array_flip($matches[1]);
+        }
+        $readonly = [];
+        if (preg_match_all('/\$([\w]+)/', $yarn, $matches)) {
+            foreach (array_unique($matches[1]) as $varname) {
+                if (isset($written[$varname]) || in_array($varname, self::SYSTEM_VARIABLES)) {
+                    continue;
+                }
+                $readonly[] = '$' . $varname;
+            }
+        }
+        if (!empty($readonly)) {
+            $problems[] = 'These variables are read but never given a value anywhere in the script, '
+                . 'so they are always undefined: ' . implode(', ', $readonly)
+                . '. Add <<declare $var = value>> for each.';
+        }
+
+        return $problems;
     }
 
     /**
@@ -349,16 +515,40 @@ class itemtype extends item {
      * @return string
      */
     public static function aigen_fetch_usage() {
-        return 'An interactive branching story ("choose your own adventure") written in Yarn Spinner format. '
-            . 'The learner reads the story and makes choices that change what happens; variables can track items, '
-            . 'score or time, leading to good or bad endings. Use it for extended, engaging reading practice - '
+        return 'An interactive story written in Yarn Spinner format, in either of two shapes. A narrative story '
+            . 'advances a plot through chapters and the learner\'s choices branch it towards good or bad endings '
+            . '("choose your own adventure"). A spatial story gives the learner a map of locations to move around, '
+            . 'with items to collect and locked doors, dark passages or unhelpful characters to get past using them. '
+            . 'Either way variables track items, score or time. Use it for extended, engaging reading practice - '
             . 'a well built story gives around 20 minutes of reading. It is the most content-heavy item type '
-            . 'to compose: the whole activity is driven by the fictionyarn script.';
+            . 'to compose: the whole activity is driven by the fictionyarn script, and the authoring guide covers '
+            . 'how to choose between the two shapes and how to write each one.';
+    }
+
+    /**
+     * The full guide to writing a fiction story in Yarn: the syntax this runtime supports and the
+     * method for authoring a good story. Kept as markdown rather than a PHP string because it is
+     * long prose that is edited often, and it is deliberately free of import payload detail so that
+     * the lesson templates which take a ready made yarn script as an input can point at it too.
+     *
+     * @return string|null the guide as markdown, or null if the file is missing
+     */
+    public static function aigen_fetch_authoring_guide() {
+        $guidefile = __DIR__ . '/../docs/authoring_guide.md';
+        if (!is_readable($guidefile)) {
+            return null;
+        }
+        $guide = file_get_contents($guidefile);
+        return $guide === false ? null : $guide;
     }
 
     /**
      * The agent-facing import field spec for fiction. Option meanings mirror the authoring form
      * (see custom_definition in itemform.php); keep the two in sync when changing form options.
+     *
+     * The yarn syntax and story writing method are NOT repeated here - they live in
+     * aigen_fetch_authoring_guide(), which the template path can reach as well. This spec covers
+     * only how to package a story as an import item.
      *
      * @return array the import spec (usage, fields, fileareas, example)
      */
@@ -367,25 +557,11 @@ class itemtype extends item {
             'timelimit', 'layout']);
         $fields['type']['example'] = 'fiction';
 
-        $yarnsyntax = 'Yarn Spinner syntax essentials: '
-            . 'A story is a series of nodes. Each node is "title: NodeName" (ASCII, no spaces) on its own line, '
-            . 'then "---" alone on a line, then the body, then "===" alone on a line. The first node must be '
-            . '"title: Start". Body lines: "CharacterName: dialogue" (no spaces in names) or plain narrator text. '
-            . 'Choices: "-> Option text" lines, each option\'s indented lines following it, and every option must '
-            . 'end by routing somewhere: "<<jump NodeName>>", or "<<detour SideNode>>" (side node ends with '
-            . '"<<return>>") followed by a jump. Every jump/detour target node must exist - no dead ends - and '
-            . 'consecutive choice sets must be separated by narrative text. '
-            . 'Variables: declare before use with "<<declare $var = value>>", change with "<<set $var = $var + 1>>" '
-            . '(compound operators like += are NOT supported), show in text as {$var}. '
-            . 'Conditionals: "<<if $cond>>", "<<elseif ...>>", "<<else>>", "<<endif>>"; conditional options: '
-            . '"-> Option text <<if $cond>>" (no endif). '
-            . 'Media: "<<picture file.png>>", "<<audio file.mp3>>", "<<video file.mp4>>" with the files uploaded '
-            . 'to the ' . self::FILES . ' file area. '
-            . 'Built-ins: dice(n), visited("NodeName"); system variables $userfirstname, $userfullname, $score.';
-
         $ownfields = [
             'fictionyarn' => [
-                'description' => 'The complete story script in Yarn Spinner format. ' . $yarnsyntax,
+                'description' => 'The complete story script in Yarn format. Do not write it from memory: read the '
+                    . 'authoringguide returned with this spec first: it carries the syntax this runtime actually '
+                    . 'supports (which differs from stock Yarn Spinner) and the method for writing a good story.',
                 'example' => "title: Start\n---\n<<declare \$has_key = false>>\n"
                     . "You wake up in a locked room. A small key glints under the bed.\n"
                     . "-> Take the key\n    <<set \$has_key = true>>\n    <<jump Door>>\n"
@@ -419,12 +595,26 @@ class itemtype extends item {
                     ['value' => '1', 'meaning' => 'Show unavailable options as disabled buttons'],
                 ],
             ],
-            'taptotranslate' => [
-                'description' => 'Whether a translate icon appears on each story text node, letting the learner '
-                    . 'translate that text into their native language.',
+            'readaloud' => [
+                'description' => 'Whether each story message shows a read-aloud button that speaks the '
+                    . 'message aloud with a TTS voice. Turn it on to support lower-level readers.',
                 'options' => [
-                    ['value' => '0', 'meaning' => 'No translate icon (default)'],
-                    ['value' => '1', 'meaning' => 'Show the tap-to-translate icon'],
+                    ['value' => '0', 'meaning' => 'No read-aloud button (default)'],
+                    ['value' => '1', 'meaning' => 'Show a read-aloud button on each message'],
+                ],
+            ],
+            'promptvoice' => [
+                'description' => 'The TTS voice used by the read-aloud button. A voice display name '
+                    . '(case-insensitive), e.g. "Joey" (en-US) or "Mathieu" (fr-FR), or "auto" to let the '
+                    . 'server pick a voice matching the lesson language. Only used when readaloud is 1.',
+                'example' => 'auto',
+            ],
+            'promptvoiceopt' => [
+                'description' => 'Reading speed for the read-aloud audio. Only used when readaloud is 1.',
+                'options' => [
+                    ['value' => 'normal', 'meaning' => 'Normal speed (default; any unrecognised value also maps to normal)'],
+                    ['value' => 'slow', 'meaning' => 'Slow reading speed'],
+                    ['value' => 'veryslow', 'meaning' => 'Very slow reading speed'],
                 ],
             ],
         ];
@@ -443,15 +633,11 @@ class itemtype extends item {
         ];
 
         return [
-            'usage' => 'Compose one item object per story. Recipe for a good story: write in the 2nd person '
-                . '("You"), at the learner\'s level; define a clear winning objective and a failing condition; '
-                . 'track progress with about three declared variables (e.g. two items to collect and one counter '
-                . 'like $health or $time_remaining); structure 5 to 9 chapters, and in each chapter offer choices - '
-                . 'some inconsequential (extra detail via <<detour>>, merging back), some consequential (changing '
-                . 'variables or branching toward an ending). Make each choice option one a reader might plausibly '
-                . 'pick, and do not repeat the option text as a question in the narrative before it. '
-                . 'Verify every jump target exists before submitting. Pictures referenced with <<picture 01.png>> '
-                . 'go in the ' . self::FILES . ' file area under the exact filename.',
+            'usage' => 'Compose one item object per story. Write the story itself by following the authoringguide '
+                . 'returned with this spec - it covers the supported yarn syntax, the story structure, and the '
+                . 'checks to run before submitting. Beyond that, the only import specific point is media: files '
+                . 'referenced from the script with <<picture 01.png>> and friends go in the ' . self::FILES
+                . ' file area under exactly that filename.',
             'fields' => array_values($fields),
             'fileareas' => [
                 [
@@ -476,7 +662,6 @@ class itemtype extends item {
                             . "<<else>>\nThe door is locked. You go back for the key.\n<<jump Start>>\n<<endif>>\n===",
                         'presentationmode' => 1,
                         'flowthroughmode' => 0,
-                        'taptotranslate' => 1,
                     ],
                 ],
             ],
@@ -521,12 +706,28 @@ class itemtype extends item {
             'dbname' => self::SHOW_NONOPTIONS,
         ];
 
-        $keycols['int4'] = [
-            'jsonname' => 'taptotranslate',
-            'type' => 'int',
+        $keycols['int5'] = [
+            'jsonname' => 'readaloud',
+            'type' => 'boolean',
             'optional' => true,
             'default' => 0,
-            'dbname' => self::TAP_TO_TRANSLATE,
+            'dbname' => self::READALOUD,
+        ];
+
+        $keycols['text5'] = [
+            'jsonname' => 'promptvoice',
+            'type' => 'voice',
+            'optional' => true,
+            'default' => null,
+            'dbname' => constants::POLLYVOICE,
+        ];
+
+        $keycols['int4'] = [
+            'jsonname' => 'promptvoiceopt',
+            'type' => 'voiceopts',
+            'optional' => true,
+            'default' => null,
+            'dbname' => constants::POLLYOPTION,
         ];
 
         $keycols[self::FILES] = [

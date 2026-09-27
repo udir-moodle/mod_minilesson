@@ -2325,6 +2325,16 @@ class utils {
         $mform->setType('nativelang', PARAM_TEXT);
         $mform->setDefault('nativelang', $config->nativelang);
 
+        // Native language translation.
+        $mform->addElement(
+            'selectyesno',
+            'nativetranslation',
+            get_string('nativetranslation', constants::M_COMPONENT)
+        );
+        $mform->setType('nativetranslation', PARAM_INT);
+        $mform->addHelpButton('nativetranslation', 'nativetranslation', constants::M_COMPONENT);
+        $mform->setDefault('nativetranslation', $config->nativetranslation);
+
         // Allow continue attempts.
         $mform->addElement('selectyesno', 'allowcontinueattempts', get_string('allowcontinueattempts', constants::M_COMPONENT));
         $mform->setType('allowcontinueattempts', PARAM_INT);
@@ -2459,7 +2469,16 @@ class utils {
 
         $texttype = 'ssml';
         $cache = \cache::make_from_params(\cache_store::MODE_APPLICATION, constants::M_COMPONENT, 'polly');
-        $key = sha1($speaktext . '|' . $texttype . '|' . $voice);
+        // The speed option changes the synthesised audio, so it is part of the cache key - except
+        // for "normal" (and any unrecognised value, which also renders as normal), which is left
+        // out so that cache entries created before the speed option was keyed stay valid. Most
+        // audio is normal speed, so this avoids a site-wide re-generation.
+        $speedkey = in_array(
+            (int) $voiceoption,
+            [constants::TTS_SLOW, constants::TTS_VERYSLOW, constants::TTS_SSML],
+            true
+        ) ? '|' . (int) $voiceoption : '';
+        $key = sha1($speaktext . '|' . $texttype . '|' . $voice . $speedkey);
         $pollyurl = $cache->get($key);
         if ($pollyurl && !empty($pollyurl)) {
             return $pollyurl;

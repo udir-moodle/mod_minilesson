@@ -1398,5 +1398,63 @@ function xmldb_minilesson_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026083101, 'minilesson');
     }
 
+    if ($oldversion < 2026090101) {
+        // Update default templates - the "Add Pics to Interactive Story" template now points
+        // agents at the fiction item type's authoring guide before they write the yarn script
+        // it takes as an input.
+        \mod_minilesson\aigen::create_default_templates();
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026090101, 'minilesson');
+    }
+
+    if ($oldversion < 2026090103) {
+        // Update default templates - "Add Pics to Interactive Story" now tells the agent the
+        // picture command format to write into the story, spells out the image prompts JSON it
+        // expects, and prepends the chosen image style to each generated image description.
+        \mod_minilesson\aigen::create_default_templates();
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026090103, 'minilesson');
+    }
+
+    if ($oldversion < 2026090600) {
+        // Define field nativetranslation to be added to minilesson.
+        $table = new xmldb_table(constants::M_TABLE);
+        $field = new xmldb_field('nativetranslation', XMLDB_TYPE_INTEGER, '2', null, null, null, 1, 'allowcontinueattempts');
+
+        // Conditionally launch add field nativetranslation.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+            // Existing activities keep the translation they already offer (the TTS dialog's
+            // translate icon has always been on whenever a native language was set).
+            $DB->set_field(constants::M_TABLE, 'nativetranslation', 1, []);
+        }
+
+        // Update default templates - the fiction item type's per item "tap to translate" setting
+        // is retired in favour of the activity level one, so the templates no longer set it.
+        \mod_minilesson\aigen::create_default_templates();
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026090600, 'minilesson');
+    }
+
+    if ($oldversion < 2026090700) {
+        // Five more generic text columns on the items table. The multichoice quiz item type needs
+        // one per question for its optional answer feedback, and every text column was already spoken for.
+        $table = new xmldb_table(constants::M_QTABLE);
+        $previous = 'customtext7format';
+        for ($colnumber = 8; $colnumber <= 12; $colnumber++) {
+            $field = new xmldb_field('customtext' . $colnumber, XMLDB_TYPE_TEXT, null, null, null, null, null, $previous);
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+            $previous = 'customtext' . $colnumber;
+        }
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026090700, 'minilesson');
+    }
+
     return true;
 }
