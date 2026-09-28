@@ -303,10 +303,16 @@ class aigen {
                             }
                         }
                     } else {
+                        // The payload is whatever came back, which is not always a string: a web
+                        // service exception arrives as an object, and concatenating that raises a
+                        // fatal that buries the very message being reported.
+                        $failure = is_scalar($genresult->payload)
+                            ? (string) $genresult->payload
+                            : json_encode($genresult->payload);
                         throw new textgenerationfailed(
                             $currentitemcount,
                             $importitem->type,
-                            $useprompt . ' | Error: ' . $genresult->payload
+                            $useprompt . ' | Error: ' . $failure
                         );
                     }
 
@@ -386,7 +392,7 @@ class aigen {
                                 if ($trimmed !== '' && $trimmed[0] === '[') {
                                     $decoded = json_decode($imagepromptdata, true);
                                     if (is_array($decoded)) {
-                                        $imagepromptdata = $decoded;
+                                        $imagepromptdata = self::image_prompt_list($decoded);
                                     }
                                 }
                             }
@@ -899,6 +905,28 @@ class aigen {
     }
 
     /**
+     * Turn a decoded list of image prompts into the plain list generate_images() takes. A caller
+     * may send the prompts as [{"filename": "01.png", "prompt": "..."}] so each one names the
+     * picture placeholder it is for. generate_images() fills a file area's files in order, so these
+     * are sorted by filename and reduced to their prompts. A plain list of strings is returned as is.
+     *
+     * @param array $prompts The decoded image prompt data.
+     * @return array The image prompts, in file order.
+     */
+    public static function image_prompt_list(array $prompts) {
+        $objects = array_filter($prompts, function ($prompt) {
+            return is_array($prompt) && isset($prompt['prompt']);
+        });
+        if (empty($objects) || count($objects) !== count($prompts)) {
+            return $prompts;
+        }
+        usort($objects, function ($a, $b) {
+            return strnatcmp($a['filename'] ?? '', $b['filename'] ?? '');
+        });
+        return array_column($objects, 'prompt');
+    }
+
+    /**
      * Work out how much control the caller has over a whole template's content. This is the
      * weakest of its items: the item the caller cannot steer is where the lesson's teaching
      * point gets lost, whatever the other items do.
@@ -915,6 +943,56 @@ class aigen {
             }
         }
         return $lowest ?? self::CONTROL_GENERATED;
+    }
+
+    /**
+     * The lesson setting a template input falls back to, for an input whose field mapping declares
+     * one with "defaultfrom". Only "nativelang" is understood so far: a dozen templates ask for a
+     * native language that the lesson already records, and a teacher who is not prompted for it
+     * rarely thinks to supply it.
+     *
+     * @param \stdClass $fieldmapping One entry of the config's fieldmappings.
+     * @param \stdClass|null $moduleinstance The lesson the items are being generated into.
+     * @return string The value to fall back to, or '' where the lesson does not set one.
+     */
+    public static function input_default($fieldmapping, $moduleinstance) {
+        if (empty($fieldmapping->defaultfrom) || empty($moduleinstance)) {
+            return '';
+        }
+        switch ($fieldmapping->defaultfrom) {
+            case 'nativelang':
+                // The '0' value is the "--" option: the lesson has no native language, so there is nothing to use.
+                $nativelang = $moduleinstance->nativelang ?? '';
+                if ($nativelang === '' || $nativelang === '0') {
+                    return '';
+                }
+                // The prompts read as prose ("translate into {nativelanguage}"), so send the name, not the code.
+                return utils::get_nativelang_options()[$nativelang] ?? '';
+        }
+        return '';
+    }
+
+    /**
+     * Fill in the template inputs the caller left empty that have a lesson setting to fall back to.
+     * Run before the required-input check, so an unsupplied input that the lesson can answer is
+     * answered rather than rejected.
+     *
+     * @param array $contextdata The generation context, as submitted.
+     * @param \stdClass $config A decoded template config.
+     * @param \stdClass|null $moduleinstance The lesson the items are being generated into.
+     * @return array The same context, with the defaults filled in.
+     */
+    public static function apply_input_defaults(array $contextdata, $config, $moduleinstance) {
+        foreach (($config->fieldmappings ?? new \stdClass()) as $fieldname => $fieldmapping) {
+            if (empty($fieldmapping->enabled) || !empty($contextdata[$fieldname])) {
+                continue;
+            }
+            $default = self::input_default($fieldmapping, $moduleinstance);
+            if ($default !== '') {
+                $contextdata[$fieldname] = $default;
+            }
+        }
+        return $contextdata;
     }
 
     /**

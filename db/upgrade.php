@@ -1456,5 +1456,89 @@ function xmldb_minilesson_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026090700, 'minilesson');
     }
 
+    if ($oldversion < 2026091100) {
+        // Tables for the in-Moodle chat agent: one row per teacher-plus-lesson conversation, one
+        // per message in it, and one per model call. The conversation is kept server side because
+        // the provider's handle on the history and the arguments of a call awaiting approval are
+        // both things a browser must not be able to choose. The metric rows are what let the
+        // agent's behaviour and cost be read off measurements rather than judged by impression.
+        $tables = [
+            constants::M_CHATAGENTCONV_TABLE,
+            constants::M_CHATAGENTMSG_TABLE,
+            constants::M_CHATAGENTMETRIC_TABLE,
+        ];
+        foreach ($tables as $tablename) {
+            $table = new xmldb_table($tablename);
+            if (!$dbman->table_exists($table)) {
+                $dbman->install_one_table_from_xmldb_file(__DIR__ . '/install.xml', $tablename);
+            }
+        }
+
+        // Update default templates - new imagestyle settings for vocab cards.
+        \mod_minilesson\aigen::create_default_templates();
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026091100, 'minilesson');
+    }
+
+    if ($oldversion < 2026091105) {
+        // Update default templates - fluency upload-with-markup keeps the teacher's sentences as typed.
+        \mod_minilesson\aigen::create_default_templates();
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026091105, 'minilesson');
+    }
+
+    if ($oldversion < 2026091112) {
+        // The agent-only "Add Pics to Interactive Story" template is renamed "Interactive Story (agent-written,
+        // with pics)", and its description now leads with why an agent would pick it. The template sync keeps an
+        // existing record's name and description, so set them here. Only where a default name is in place, so an
+        // admin's own rename is kept.
+        // The poster image prompt is now an input too: the poster is no longer written by the AI.
+        // Its tag is now "Reading" (was "Vocabulary Practice").
+        // It also has a Story Type input, so the story shape shows in the agent's plan.
+        // The story now goes into the fiction item as written, with no AI step that could lose it.
+        $newname = get_string('aigentemplatename:fiction_addpics', constants::M_COMPONENT);
+        $newdescription = get_string('aigentemplatedescription:fiction_addpics', constants::M_COMPONENT);
+        $defaultnames = [
+            'add pics to interactive story',
+            'interactive story (supplied yarn + image prompts)',
+            \core_text::strtolower($newname),
+        ];
+        $templates = $DB->get_records('minilesson_templates', ['uniqueid' => '69b032eb8af03']);
+        foreach ($templates as $template) {
+            if (in_array(\core_text::strtolower(trim($template->name)), $defaultnames)) {
+                $template->name = $newname;
+                $template->description = $newdescription;
+                $DB->update_record('minilesson_templates', $template);
+            }
+        }
+        // Update default templates - the config now makes the poster from the supplied poster image prompt.
+        \mod_minilesson\aigen::create_default_templates();
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026091112, 'minilesson');
+    }
+
+    if ($oldversion < 2026091113) {
+        // Update default templates - five template items carried a field their item type does not have
+        // (typinggapfill promptvoice/promptvoiceopt in the three grammar lessons, wordshuffle confirmchoice in
+        // word practice v2, freespeaking enablevkeyboard in the YouTube finale). Import now rejects such items.
+        \mod_minilesson\aigen::create_default_templates();
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026091113, 'minilesson');
+    }
+
+    if ($oldversion < 2026091200) {
+        // Update default templates - the twelve templates that ask for a native language now declare
+        // "defaultfrom": "nativelang" on that input, so an empty one falls back to the lesson's own
+        // native language setting instead of failing the run or having to be asked for.
+        \mod_minilesson\aigen::create_default_templates();
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026091200, 'minilesson');
+    }
+
     return true;
 }

@@ -304,6 +304,7 @@ $string['no-no'] = 'Norwegian'; // Norwegian
 $string['sr-rs'] = 'Serbian'; // Serbian
 $string['vi-vn'] = 'Vietnamese'; // Vietnamese
 $string['so-so'] = 'Somali'; // Somali
+$string['ti-er'] = 'Tigrinya';
 $string['ps-af'] = 'Pashto'; // Afghan Pashto
 
 $string['awsregion'] = 'AWS Region';
@@ -1099,6 +1100,7 @@ $string['generatingimagedata'] = 'Making image data for: {$a}';
 $string['aigenpageimporting'] = 'Importing AI generated items';
 $string['aigenpagecomplete'] = 'AI generation complete';
 $string['aigenviewresult'] = 'View AI Generated Items';
+$string['aigeninputdefaults:nativelang'] = 'Leave this empty unless the user has named a language: it then falls back to the native language set on the lesson. Generation fails only if the lesson does not set one either.';
 $string['aigenmissingrequiredinputs'] = 'Template "{$a->template}" requires a non-empty value for every input it declares, but these were empty: {$a->missing}. There is no default to fall back on, so an empty value here generates content with a hole in it. Do not guess these values or send them empty: ask the user what they should be, or pick a template that does not need them, then try again.';
 $string['col:templateid'] = 'ID';
 $string['col:name'] = 'Name';
@@ -1146,19 +1148,19 @@ $string['aigentemplatename:choose_best_reply'] = 'Choose the correct reply.';
 $string['aigentemplatename:fiction_withpics'] = 'Interactive Story (with pics)';
 $string['aigentemplatename:fiction_nopics'] = 'Interactive Story (no pics)';
 $string['aigentemplatename:narrativefiction_withpics'] = 'Narrative Story (with pics)';
-$string['aigentemplatename:fiction_addpics'] = 'Add Pics to Interactive Story';
+$string['aigentemplatename:fiction_addpics'] = 'Interactive Story (agent-written, with pics)';
 $string['aigentemplatename:vocabcards'] = 'Vocab Cards';
 $string['aigentemplatedescription:passagereading'] = 'Enter a list of keywords and a topic, AI will prepare a passage of text and some reading and speaking activities based on it.';
 $string['aigentemplatedescription:ayoutubelesson'] = 'Enter a YouTube video id (or URL) and summaries. Poodll will generate a short lesson with multi-choice and speaking activities';
 $string['aigentemplatedescription:youtubefinalelesson'] = 'This is a lesson based on a YouTube video story. A related but simplified story is prepared and comprehension, and speaking actvities are built on the story. Finally the student sees the original video that they have been studying';
-$string['aigentemplatedescription:wordpractice'] = 'Enter a list of words (5) and a topic, Poodll will make a activity with vocab cards, listening and typing gapfills, a space game a free writing activity';
+$string['aigentemplatedescription:wordpractice'] = 'Enter a list of words (5) and a topic and in an image style, Poodll will make a activity with vocab cards, listening and typing gapfills, a space game a free writing activity';
 $string['aigentemplatedescription:wordpractice2'] = 'Given a list of words, example sentences and the students native language, this template will generate a set of practice activities with images and native language hints. You can use up to 9 words.';
-$string['aigentemplatedescription:wordpractice_v4'] = 'Enter 4 - 10 keywords or phrases, and set the user\'s native language. They will be used to generate:
+$string['aigentemplatedescription:wordpractice_v4'] = 'Enter 4 - 10 keywords or phrases, and set the user\'s native language, and an image style. They will be used to generate:
 i)  a set of vocab cards with translations and example sentences
-ii) scatter activity (matching keyword/phrase with translation) 
-iii)  a wordcards item - listen and choose mode 
+ii) scatter activity (matching keyword/phrase with translation)
+iii)  a wordcards item - listen and choose mode
 iv)  a wordcards item - listen and type mode
-v)  a wordcards item - choose the word mode 
+v)  a wordcards item - choose the word mode
 vi)  a wordcards item - type the word mode';
 $string['aigentemplatedescription:audiostory'] = 'Enter a topic, the learners language level and a type of story. AI will prepare an audio story with listening and speaking activities.';
 $string['aigentemplatedescription:set_of_slides'] = 'This template will create a tutorial slides that are based on a description of what you want to teach.';
@@ -1167,15 +1169,15 @@ $string['aigentemplatedescription:keywordstogapfillsfluency'] = 'Enter a list of
 $string['aigentemplatedescription:reading_aic_passagegen'] = 'This will take a topic and learner level and generate a reading passage that will be used in a passage reading and then an audio chat session that is based on the reading passage.';
 $string['aigentemplatedescription:reading_aic_passageupload'] = 'Paste in a reading passage, and 4 short answer questions. These will be used in a passage reading exercise and then an audio chat session that is based on the reading passage.';
 $string['aigentemplatedescription:keywords_to_ws_sc'] = 'Enter 4 - 10 keywords. The keywords will be used to generate a word shuffle and scatter activity. The keywords will also be used to generate a picture of each keyword on a blackboard.';
-$string['aigentemplatedescription:keywords_to_ws_sc_sg'] = 'Enter 4 - 10 keywords. The keywords will be used to generate a set of vocab cards, word shuffle, scatter activity, and space game items.';
+$string['aigentemplatedescription:keywords_to_ws_sc_sg'] = 'Enter 4 - 10 keywords, the language level, students native language and an image style. The keywords will be used to generate a set of vocab cards, word shuffle, scatter activity, and space game items.';
 $string['aigentemplatedescription:dialog_multichoice'] = 'Enter 4 dialogs. They will form 4 multi choice questions where the choice of answer is an image representing the currently playing Dialog. The dialogs are in TTS Dialog format. e.g A) I like toast. [new line]  B) Me too.';
 $string['aigentemplatedescription:image_slides'] = 'Enter 5 image descriptions and an image style to get 5 image slides';
 $string['aigentemplatedescription:choose_best_reply'] = 'Student hears 10 short conversations and must choose the best next reply from the 3 options offered. Each question has a picture. It is based on the Eiken Level 3 English test listening section. You need to enter the  location and situation (usually a problem) for each conversation. eg "two friends at the beach and one has lost their wallet"';
 $string['aigentemplatedescription:fiction_withpics'] = 'An interactive story with pics';
 $string['aigentemplatedescription:fiction_nopics'] = 'An interactive story with no pics, apart from an introduction screen';
 $string['aigentemplatedescription:narrativefiction_withpics'] = 'An interactive fiction item with fewer choices, more story, and pictures.';
-$string['aigentemplatedescription:fiction_addpics'] = 'This template accepts a fiction item story, and image prompts, and generates pictures for the story from the supplied image prompts. This template takes as input:  story summary, an image generation style, a story in yarn format with image placeholders, and a json array with image filenames + image generation prompts. It produces 2 items, a content page item with a picture, and a fiction item with images matching all the placeholders.';
-$string['aigentemplatedescription:vocabcards'] = 'A set of vocabulary cards. Enter the list of comma separated words/phrases, and the students\' native language. Cards with the word/phrase, translation, example sentence and a picture will be created.';
+$string['aigentemplatedescription:fiction_addpics'] = 'Use this when the teacher gives an idea or premise for a story: you write the story yourself in Yarn, following the fiction authoring guide, which gives a better story than the generated story templates. The teacher does not need to have a script. You choose the story type, and supply the complete story with picture placeholders, one image prompt per placeholder, an image prompt for the poster, and an image style. The story is used exactly as you wrote it. The template generates the pictures and the poster, and builds 2 items: a content page with the poster, and a fiction item with a picture for every placeholder.';
+$string['aigentemplatedescription:vocabcards'] = 'A set of vocabulary cards. Enter the list of comma separated words/phrases, and the students\' native language, and the image style. Cards with the word/phrase, translation, example sentence and a picture will be created.';
 $string['aigentemplatename:youtubefinale_freewrite'] = 'YouTube Finale (listen and free write)';
 $string['aigentemplatedescription:youtubefinale_freewrite'] = 'This is a lesson based on a YouTube video story. A related but simplified story is prepared and comprehension, and a writing activity are built on the story.';
 $string['aigentemplatename:youtubefinale_freespeak'] = 'YouTube Finale (listen and free speak)';
@@ -1276,9 +1278,9 @@ $string['aigentemplatename:scatter_upload'] = 'Scatter (upload)';
 $string['aigentemplatedescription:scatter_upload'] = 'Enter up to ten matching pairs that will be used to make a Scatter item where students will match the pairs by tapping the correct cards.';
 $string['aigentemplatename:vocabcards_upload_markup'] = 'Vocab Cards (upload with markup)';
 $string['aigentemplatedescription:vocabcards_upload_markup'] = 'A set of vocabulary cards. Each card can have up to 4 lines of text: usually keyword | keyword-translation | keyword-examplesentence|keyword-examplesentence-translation
-An image will be generated for each card ';
+An image will be generated for each card based on the keyword and the image style specified';
 $string['aigentemplatename:fluency_upload_markup'] = 'Fluency (upload sentences with markup)';
-$string['aigentemplatedescription:fluency_upload_markup'] = 'Create a Fluency item by supplying  up to 10 sentences which students will practice saying aloud. A picture will be generated to go with each sentence in the item.';
+$string['aigentemplatedescription:fluency_upload_markup'] = 'Create a Fluency item by supplying  up to 10 formatted sentences which students will practice saying aloud. A picture will be generated to go with each sentence in the item from the specified image style and unformatted sentences.';
 $string['aigentemplatename:freewriting_upload'] = 'Free Writing (Upload question)';
 $string['aigentemplatedescription:freewriting_upload'] = 'Enter a question or topic about which students will write.';
 $string['aigentemplatename:freespeaking_upload'] = 'Free Speaking (upload question)';
@@ -1644,3 +1646,129 @@ $string['subscription'] = 'Subscription';
 $string['thirty_days'] = '30 Days';
 $string['threehundredsixtyfive_days'] = '365 Days';
 $string['video'] = 'Video';
+
+// Chat agent.
+$string['chatagent'] = 'Assistant';
+$string['chatagent_tabhelp'] = 'Build this lesson by chatting with an AI assistant';
+$string['chatagent_context'] = 'You are working on one lesson only: the MiniLesson "{$a->lesson}" '
+    . '(cmid {$a->cmid}) in the course "{$a->course}" (courseid {$a->courseid}). It currently has '
+    . '{$a->itemcount} items. Pass cmid {$a->cmid} to every tool that writes, and do not call '
+    . 'aigen_list_minilessons or list_courses to find this lesson - you already have it. You may read '
+    . 'another lesson if the teacher asks you to reuse one as a model, but every change goes to '
+    . 'cmid {$a->cmid}: writes aimed anywhere else are rejected.';
+$string['chatagent_declined'] = 'The teacher declined this action. Do not repeat it. Ask what they would '
+    . 'like to change, or offer an alternative.';
+$string['chatagent_error_auth'] = 'The AI assistant could not sign in to the AI service. Check the Gemini '
+    . 'API key in the MiniLesson settings.';
+$string['chatagent_error_connection'] = 'The AI assistant could not reach the AI service. Check the '
+    . 'server\'s internet connection and any proxy settings, then try again.';
+$string['chatagent_error_nokey'] = 'The AI assistant is not set up: no Gemini API key has been entered in '
+    . 'the MiniLesson settings.';
+$string['chatagent_error_nopending'] = 'There is nothing waiting to be approved. The conversation may have '
+    . 'moved on since this was shown.';
+$string['chatagent_error_quota'] = 'The AI service quota has run out. Try again later, or raise the quota '
+    . 'in Google AI Studio.';
+$string['chatagent_error_stuck'] = 'The assistant used too many steps without finishing. Nothing was lost '
+    . '- try asking again, more specifically.';
+$string['chatagent_error_transport'] = 'The AI service sent a reply that could not be read. Try again.';
+$string['chatagent_error_unknown'] = 'The AI service could not complete that request. Try again.';
+$string['chatagent_error_cp_auth'] = 'The AI assistant could not sign in to Cloud Poodll. Check the Poodll '
+    . 'API user and secret in the MiniLesson settings.';
+$string['chatagent_error_cp_busy'] = 'The AI service is busy. Wait a minute or two and try again.';
+$string['chatagent_error_cp_connection'] = 'The AI assistant could not reach Cloud Poodll. Check the '
+    . 'server\'s internet connection and any proxy settings, then try again.';
+$string['chatagent_error_cp_licence'] = 'This site\'s Poodll subscription does not cover the AI assistant. '
+    . 'Check that the subscription is current, that it includes MiniLesson, and that this site\'s address is '
+    . 'registered with Poodll.';
+$string['chatagent_error_cp_nocredentials'] = 'The AI assistant is not set up: no Poodll API user and '
+    . 'secret have been entered in the MiniLesson settings.';
+$string['chatagent_error_cp_notsupported'] = 'Cloud Poodll does not offer the AI assistant yet. Try again '
+    . 'later, or switch the chat agent to the site\'s own Gemini API key in the meantime.';
+$string['chatagent_error_cp_quota'] = 'Today\'s AI assistant allowance for this site\'s Poodll account has '
+    . 'been used up. It resets at midnight UTC.';
+$string['chatagent_replay_preamble'] = 'This conversation continues an earlier session that the AI service '
+    . 'no longer holds. Here is what was said, oldest first. Continue from where it left off, and do '
+    . 'not repeat work that is already done.';
+$string['chatagent_task_cleanup'] = 'Clean up old assistant conversations';
+$string['privacy:path:chatagent'] = 'Assistant conversations';
+$string['privacy:metadata:chatagentconvtable'] = 'Assistant conversations a teacher has had about a lesson.';
+$string['privacy:metadata:chatagentconv:userid'] = 'The teacher who had the conversation.';
+$string['privacy:metadata:chatagentconv:cmid'] = 'The lesson the conversation was about.';
+$string['privacy:metadata:chatagentconv:interactionid'] = 'The AI provider\'s reference for the conversation history it holds.';
+$string['privacy:metadata:chatagentconv:pendingargs'] = 'The details of an action the assistant proposed and is waiting to have approved.';
+$string['privacy:metadata:chatagentconv:timemodified'] = 'When the conversation was last active.';
+$string['privacy:metadata:chatagentmsgtable'] = 'The messages making up an assistant conversation.';
+$string['privacy:metadata:chatagentmsg:role'] = 'Whether the message came from the teacher, the assistant, or a tool the assistant used.';
+$string['privacy:metadata:chatagentmsg:content'] = 'The text of the message.';
+$string['privacy:metadata:chatagentmsg:attachments'] = 'A record of any files the teacher attached to the message.';
+$string['privacy:metadata:chatagentmsg:timecreated'] = 'When the message was sent.';
+$string['privacy:metadata:gemini'] = 'To answer, the assistant sends the conversation to the Gemini API, using the API key the site has configured. The conversation is held in that Google project according to its own retention settings.';
+$string['privacy:metadata:gemini:prompts'] = 'What the teacher typed, and the assistant\'s replies.';
+$string['privacy:metadata:gemini:attachments'] = 'Any documents or images the teacher attached.';
+$string['privacy:metadata:cloudpoodllcom:chatagentprompts'] = 'Under the Cloud Poodll provider, the assistant conversation: what the teacher typed and the assistant\'s replies. Cloud Poodll passes it to the Gemini API in Poodll\'s own Google project, where it is held according to that project\'s retention settings.';
+$string['privacy:metadata:cloudpoodllcom:chatagentattachments'] = 'Under the Cloud Poodll provider, any documents or images the teacher attached to the assistant conversation.';
+$string['chatagent_error_attachmenttoobig'] = 'The file "{$a->name}" is {$a->size} MB, and the assistant accepts attachments up to {$a->max} MB. Try a shorter extract, just the pages you need, or split it across two messages. (Exported lessons in .json format have no size limit here.)';
+$string['chatagent_error_emptymessage'] = 'Type a message, or attach a file, before sending.';
+$string['chatagent_error_noconversation'] = 'That conversation could not be opened. Reload the page and try again.';
+$string['chatagent_error_toomanyturns'] = 'You have reached the limit of {$a} assistant messages an hour. Try again shortly.';
+$string['chatagent_error_unavailable'] = 'The assistant is not available on this site.';
+$string['chatagent_settings'] = 'Chat agent';
+$string['chatagent_settings_details'] = 'The chat agent lets teachers build a lesson by describing it in a chat panel, attaching a PDF or an image if they have one. It reaches the AI through Cloud Poodll, using the site\'s Poodll API user and secret and the site\'s Poodll subscription, or through the site\'s own Gemini API key (set on the "Other API keys" page), in which case Google bills the site directly. Until the chosen provider has its credentials, the agent stays hidden however these settings are left.';
+$string['chatagentenabled'] = 'Enable the chat agent';
+$string['chatagentenabled_details'] = 'Show the Assistant tab to teachers who can use AI generation. Has no effect until the chosen provider has its credentials: a Poodll API user and secret for Cloud Poodll, or a Gemini API key for the site\'s own key.';
+$string['chatagentprovider'] = 'AI provider';
+$string['chatagentprovider_details'] = 'Where the chat agent sends its requests. Cloud Poodll needs nothing beyond the site\'s Poodll credentials, and each Poodll account has a daily allowance shared by all its sites. With the site\'s own Gemini API key, Google bills the site and the key\'s own quota applies. Either way the server must be able to reach the provider over the internet, through the site\'s proxy settings if it has them.';
+$string['chatagentprovider_cloudpoodll'] = 'Cloud Poodll (uses the site\'s Poodll subscription)';
+$string['chatagentprovider_ownkey'] = 'This site\'s own Gemini API key';
+$string['chatagentmodel'] = 'Model';
+$string['chatagentmodel_details'] = 'The Gemini model to use with the site\'s own key. Free text, so you can move to a newer model without waiting for a plugin update. Cloud Poodll chooses its own model.';
+$string['chatagentmaxtoolcalls'] = 'Actions per message';
+$string['chatagentmaxtoolcalls_details'] = 'How many things the assistant may do in answering one message before it is stopped. Reaching this limit usually means it is going round in circles.';
+$string['chatagentmaxturns'] = 'Messages per hour';
+$string['chatagentmaxturns_details'] = 'How many messages one teacher may send in an hour, across all their conversations.';
+$string['chatagentmaxattachmentmb'] = 'Largest attachment (MB)';
+$string['chatagentmaxattachmentmb_details'] = 'The biggest PDF or image a teacher may attach to a message. This is a cost control, not a technical limit: the AI service itself accepts far larger files (up to 50 MB for a PDF), so raise this if your teachers work from real lesson documents - the trade is the tokens they cost, not whether they work. Exported lessons (.json) are not affected, because their embedded media is stripped out before anything is sent.';
+$string['chatagentretaindays'] = 'Keep conversations for (days)';
+$string['chatagentretaindays_details'] = 'Conversations untouched for this long are deleted, along with anything attached to them. They are working notes, not part of the lesson.';
+$string['chatagent_additems'] = 'Add an item';
+$string['chatagent_approvalprompt'] = 'The assistant would like to make a change to your lesson.';
+$string['chatagent_approvaldetails'] = 'Show exactly what it will send';
+$string['chatagent_approve'] = 'Go ahead';
+$string['chatagent_decline'] = 'Not yet';
+$string['chatagent_conversation'] = 'Conversation with the assistant';
+$string['chatagent_cronwarning'] = 'Scheduled tasks do not appear to be running on this site. The assistant can still write items directly, but anything it generates in the background will stay queued and never finish.';
+$string['chatagent_generating'] = 'Generating items in the background. This can take a few minutes.';
+$string['chatagent_inputlabel'] = 'Message to the assistant';
+$string['chatagent_introheading'] = 'Build this lesson by describing it';
+$string['chatagent_introbody'] = 'Tell the assistant what you want and it will plan the items, show you the plan, and add them once you agree. You can attach a PDF, an image, or an exported minilesson (JSON) to work from.';
+$string['chatagent_example1'] = 'Add three multiple choice questions about ordering coffee, for beginners.';
+$string['chatagent_example2'] = 'Turn the attached worksheet into items, keeping the questions as they are.';
+$string['chatagent_example3'] = 'Use one of the vocabulary templates to make cards from these words: menu, waiter, bill.';
+$string['chatagent_itemcount'] = '{$a} items in this lesson';
+$string['chatagent_jobfinished'] = 'The background generation finished with status: {$a}.';
+$string['chatagent_noitemsyet'] = 'This lesson has no items yet.';
+$string['chatagent_placeholder'] = 'Describe what you would like to add...';
+$string['chatagent_send'] = 'Send';
+$string['chatagent_startover'] = 'Start over';
+$string['chatagent_startoverconfirm'] = 'This deletes the conversation and anything you attached to it. The items already added to the lesson are not affected.';
+$string['chatagent_thinking'] = 'Thinking...';
+$string['chatagent_working'] = 'Working...';
+$string['chatagent_files'] = 'Files for this conversation';
+$string['chatagent_fileshelp'] = 'Add a PDF, an image, or an exported lesson (.json) for the assistant to work from. Removing a file here takes it out of the conversation from your next message on.';
+$string['error:unknownfield'] = 'Field "{$a->field}" is not a field of the {$a->type} item type. Its content would have been lost, so the item was rejected.{$a->suggestion}';
+$string['error:unknownfieldsuggestion'] = ' Did you mean "{$a}"?';
+$string['chatagent_entry_desc'] = 'Describe the lesson you want and build it by chatting with an assistant.';
+$string['chatagent_openassistant'] = 'Build with the assistant';
+$string['chatagent_waitingonyou'] = 'waiting for you';
+$string['event:chatagent_action_performed'] = 'Chat agent action performed';
+$string['privacy:metadata:chatagentmetrictable'] = 'Measurements of how the assistant behaved, one row per request it made to the AI service.';
+$string['privacy:metadata:chatagentmetric:conversationid'] = 'The conversation the request belonged to.';
+$string['privacy:metadata:chatagentmetric:toolname'] = 'The action the assistant took, if any.';
+$string['privacy:metadata:chatagentmetric:timecreated'] = 'When the request was made.';
+$string['chatagent_refreshitems'] = 'Refresh the item list';
+$string['chatagent_attachedfile'] = 'The teacher attached a file named "{$a}". Its contents follow.';
+$string['chatagent_attachedjson'] = 'The teacher attached a JSON file named "{$a}". Its contents follow, with any embedded media stripped out. If it is an exported MiniLesson, treat it as the shape to reuse: keep each item\'s type, layout and options, and rewrite only the wording for the new topic.';
+$string['chatagent_attachedjsonempty'] = 'The teacher attached a JSON file named "{$a}", but it could not be read.';
+$string['chatagent_attachedjsontrimmed'] = 'The teacher attached a JSON file named "{$a->name}". It was too large to include in full even with its media stripped out, so only the first {$a->max} MB of it follows. Say so, and ask the teacher to send a smaller export.';
+$string['chatagent_interrupted'] = 'The last reply was interrupted before it finished, at: {$a}';
+$string['chatagent_continue'] = 'Pick up where it left off';

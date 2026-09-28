@@ -42,6 +42,12 @@ class constants {
     const M_CORRECTPHONES_TABLE = 'minilesson_correctphones';
     const M_CPAGESUBMISSIONS_TABLE = 'minilesson_cpagesubmissions';
     const M_CPAGELIKES_TABLE = 'minilesson_cpagelikes';
+    /** @var string One row per chat agent conversation (one teacher, one lesson). */
+    const M_CHATAGENTCONV_TABLE = 'minilesson_chatagent_conv';
+    /** @var string One row per message in a chat agent conversation. */
+    const M_CHATAGENTMSG_TABLE = 'minilesson_chatagent_msg';
+    /** @var string One row per chat agent model call, for measuring how the agent behaves. */
+    const M_CHATAGENTMETRIC_TABLE = 'minilesson_chatagent_metric';
     const M_MODNAME = 'minilesson';
     const M_URL = '/mod/minilesson';
     const M_PATH = '/mod/minilesson';
@@ -539,6 +545,7 @@ class constants {
     const M_LANG_SKSK = 'sk-SK';
     const M_LANG_SLSI = 'sl-SI';
     const M_LANG_SOSO = 'so-SO';
+    const M_LANG_TIER = 'ti-ER';
     const M_LANG_ISIS = 'is-IS';
     const M_LANG_MKMK = 'mk-MK';
     const M_LANG_SRRS = 'sr-RS';
