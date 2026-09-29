@@ -1374,6 +1374,9 @@
 #page-mod-minilesson-rsquestion-rsquestions .mod_minilesson_qpanel td.itemaction {
   vertical-align: middle;
 }
+#page-mod-minilesson-rsquestion-rsquestions .mod_minilesson_qpanel td.itemaction .actions-group {
+  white-space: nowrap;
+}
 #page-mod-minilesson-rsquestion-rsquestions .mod_minilesson_qpanel td.itemaction .icon {
   color: #5C669A;
 }
@@ -1415,8 +1418,8 @@
   border-bottom-right-radius: 8px;
   text-align: right;
   width: 5%;
-  min-width: 110px;
-  max-width: 130px;
+  min-width: 140px;
+  max-width: 160px;
 }
 .mod_minilesson_qpanel tr th:last-child {
   text-align: right;
@@ -4295,6 +4298,12 @@ span.wrongitem {
   color: #1F2334;
   font-size: 15px;
   font-weight: 400;
+  white-space: pre-line;
+  text-align: start;
+}
+.minilesson_audiochat_box .ml_ac_feedback_text.mod_minilesson_rtl {
+  direction: rtl;
+  text-align: start;
 }
 .minilesson_audiochat_box .ml_ac_btn-container {
   display: flex;
@@ -4308,6 +4317,16 @@ span.wrongitem {
   max-width: 600px;
   margin: auto;
   font-family: Arial, sans-serif;
+}
+
+.audiochat-results-feedback .ml_ac_feedback_text,
+.audiochat-results-gradeexplanation .ml_ac_feedback_text {
+  white-space: pre-line;
+}
+.audiochat-results-feedback .ml_ac_feedback_text.mod_minilesson_rtl,
+.audiochat-results-gradeexplanation .ml_ac_feedback_text.mod_minilesson_rtl {
+  direction: rtl;
+  text-align: start;
 }
 
 .audiochat-results-message {
@@ -7757,7 +7776,7 @@ div.poodlldictationplayer {
   position: relative;
 }
 .minilesson_fluency_box .fluency_reply .fluency_prompt_hint {
-  font-size: 1.3em;
+  font-size: 1.1em;
   color: #1F2334;
 }
 .minilesson_fluency_box .fluency_reply .fluency_prompt_hint.rtl {

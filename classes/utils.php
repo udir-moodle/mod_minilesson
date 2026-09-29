@@ -887,7 +887,8 @@ class utils {
         }
     }
 
-    public static function fetch_cloudpoodll_audiochat_token($contextid, $voice, $disablevad, $resumehandle = '') {
+    public static function fetch_cloudpoodll_audiochat_token($contextid, $voice, $disablevad, $resumehandle = '',
+        $silencedurationms = 0, $turnmode = '') {
 
         $cloudpoodlltoken = false;
         $conf = get_config(constants::M_COMPONENT);
@@ -912,6 +913,11 @@ class utils {
         $params['region'] = $poodllregion;
         $params['voice'] = $voice;
         $params['disablevad'] = $disablevad;
+        // How the turn is delimited, and how long a pause ends it in auto mode. The
+        // cloud endpoint bakes both into the token; disablevad is still sent so an
+        // older cloud server that does not know these two keeps working.
+        $params['silencedurationms'] = $silencedurationms;
+        $params['turnmode'] = $turnmode;
         // Resume handle for session resumption; the cloud endpoint must bake this
         // into the token's bidiGenerateContentSetup for the Constrained endpoint.
         if ($resumehandle !== '') {
@@ -2179,9 +2185,16 @@ class utils {
      * @return array of language code => display name
      */
     public static function get_nativelang_options() {
-        $langs = self::get_lang_options();
-        // No TTS or speech recognition for these, so they are offered as a first language only.
-        $langs[constants::M_LANG_TIER] = get_string('ti-er', constants::M_COMPONENT);
+        $langs = [];
+        // Walk the taught languages so the extra ones can be slotted into alphabetical order,
+        // rather than landing at the end of the list where nobody would look for them.
+        foreach (self::get_lang_options() as $langcode => $langname) {
+            $langs[$langcode] = $langname;
+            // No TTS or speech recognition for these, so they are offered as a first language only.
+            if ($langcode === constants::M_LANG_TEIN) {
+                $langs[constants::M_LANG_TIER] = get_string('ti-er', constants::M_COMPONENT);
+            }
+        }
         return $langs;
     }
 
