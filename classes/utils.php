@@ -894,7 +894,7 @@ class utils {
     }
 
     public static function fetch_cloudpoodll_audiochat_token($contextid, $voice, $disablevad, $resumehandle = '',
-        $silencedurationms = 0, $turnmode = '') {
+        $silencedurationms = 0, $turnmode = '', $model = '', $inputlanguage = '') {
 
         $cloudpoodlltoken = false;
         $conf = get_config(constants::M_COMPONENT);
@@ -928,6 +928,16 @@ class utils {
         // into the token's bidiGenerateContentSetup for the Constrained endpoint.
         if ($resumehandle !== '') {
             $params['resumehandle'] = $resumehandle;
+        }
+        // The Gemini Live model the admin chose, and the language hint for the transcript
+        // of the student's speech. The cloud endpoint bakes both into the token and returns
+        // them with it, so the client's setup matches. Sent only when set, but a cloud server
+        // that predates them rejects unknown keys, so it must be updated first.
+        if ($model !== '') {
+            $params['model'] = $model;
+        }
+        if ($inputlanguage !== '') {
+            $params['inputlanguage'] = $inputlanguage;
         }
 
         $serverurl = self::get_cloud_poodll_server() . '/webservice/rest/server.php';
@@ -1155,6 +1165,10 @@ class utils {
         } else if ($feedbacklanguage == constants::AIGRADE_FEEDBACK_NATIVE_LANGUAGE) {
             $feedbacklanguage = $moduleinstance->nativelang;
         }
+        // With no native language set ("--" is stored as '0'), feedback is in the target language.
+        if (empty($feedbacklanguage)) {
+            $feedbacklanguage = $moduleinstance->ttslanguage;
+        }
 
         if ($conf->setnativelanguage) {
             $userprefdeflanguage = get_user_preferences(constants::NATIVELANG_PREF);
@@ -1182,6 +1196,19 @@ class utils {
 
         $instance = self::fetch_item_from_itemrecord($item, $moduleinstance);
         $instance->prepare_instructions_for_ai_grade($instructions);
+
+        // The grader is told the feedback language as a code, which it turns into a language name.
+        // "easy en-US" would not survive that, so the easy version is asked for in the prompt text instead.
+        $promptfeedbacklanguage = self::fetch_feedback_language($feedbacklanguage, $moduleinstance->ttslanguage);
+        $instructions->feedbackscheme = str_replace(
+            '{feedback language}',
+            $promptfeedbacklanguage,
+            (string) $instructions->feedbackscheme
+        );
+        if (trim($instructions->feedbackscheme) !== '' && $promptfeedbacklanguage !== $feedbacklanguage) {
+            $instructions->feedbackscheme = rtrim($instructions->feedbackscheme)
+                . ' Give feedback in ' . $promptfeedbacklanguage . '.';
+        }
 
         $cmcontext = context_module::instance($cm->id);
         $aigraderesults = self::fetch_ai_grade(
@@ -2204,6 +2231,38 @@ class utils {
         return $langs;
     }
 
+    /**
+     * The language to ask AI to write feedback in, for use inside a prompt.
+     *
+     * Some schools do not want the learner's first language used, so they set it to the target
+     * language. Feedback is then in the language being learned, so we ask for an easy version of it
+     * that the learner can follow. Only use this for prompt text: translation, RTL checks and anything
+     * that maps a language code to a name need the plain code.
+     *
+     * @param string $nativelang the learner's native language code, '' or '0' if not set
+     * @param string $targetlang the language the lesson teaches
+     * @return string the native language code, or "easy <targetlang>" if both are the same language
+     *                or the native language is not set
+     */
+    public static function fetch_feedback_language($nativelang, $targetlang) {
+        $nativelang = (string) $nativelang;
+        $targetlang = (string) $targetlang;
+        if ($targetlang === '') {
+            return $nativelang;
+        }
+        // The '0' value is the "--" option: no native language, so we use the target language.
+        if ($nativelang === '' || $nativelang === '0') {
+            return 'easy ' . $targetlang;
+        }
+        // Compare the base language, so that en-GB and en-US count as the same.
+        $basenative = strtolower(explode('-', $nativelang)[0]);
+        $basetarget = strtolower(explode('-', $targetlang)[0]);
+        if ($basenative === $basetarget) {
+            return 'easy ' . $targetlang;
+        }
+        return $nativelang;
+    }
+
     public static function has_compact_layout($langcode) {
         return array_key_exists($langcode, constants::KEYBOARD_LAYOUT_COMPACT);
     }
@@ -2400,6 +2459,7 @@ class utils {
         $langoptions = [0 => '--'] + self::get_nativelang_options();
         $mform->addElement('select', 'nativelang', get_string('nativelang', constants::M_COMPONENT), $langoptions);
         $mform->setType('nativelang', PARAM_TEXT);
+        $mform->addHelpButton('nativelang', 'nativelang', constants::M_COMPONENT);
         $mform->setDefault('nativelang', $config->nativelang);
 
         // Native language translation.

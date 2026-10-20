@@ -89,6 +89,9 @@ class itemtype extends item {
      */
     public const DEFAULT_SILENCEDURATION = 3500;
 
+    /** @var string Gemini Live model used unless an admin picks another. */
+    public const DEFAULT_GEMINILIVEMODEL = 'gemini-3.1-flash-live-preview';
+
     /** @var int Shortest silence an admin may configure. */
     public const MIN_SILENCEDURATION = 500;
 
@@ -110,6 +113,34 @@ class itemtype extends item {
             return self::DEFAULT_SILENCEDURATION;
         }
         return $duration;
+    }
+
+    /**
+     * The Gemini Live models an admin may choose between.
+     *
+     * @return string[] model id => label
+     */
+    public static function get_geminilivemodel_options(): array {
+        return [
+            'gemini-3.1-flash-live-preview' => 'Gemini 3.1 Flash Live (preview)',
+            'gemini-3.8-live' => 'Gemini 3.8 Live',
+            'gemini-3.8-live-extended-thinking' => 'Gemini 3.8 Live Extended Thinking',
+        ];
+    }
+
+    /**
+     * The Gemini Live model to connect to, from the admin setting.
+     *
+     * Falls back to the default if the setting is empty or names a model we do not list.
+     *
+     * @return string
+     */
+    public static function get_geminilivemodel(): string {
+        $model = get_config(constants::M_COMPONENT, 'geminilivemodel');
+        if (!$model || !array_key_exists($model, self::get_geminilivemodel_options())) {
+            return self::DEFAULT_GEMINILIVEMODEL;
+        }
+        return $model;
     }
 
     /**
@@ -167,26 +198,8 @@ class itemtype extends item {
             $this->itemrecord->{self::ROLE} = get_string('audiochat_role_default', constants::M_COMPONENT);
         }
         // Native language of the student.
-        $nativelanguage = $this->itemrecord->{self::NATIVE_LANGUAGE};
-        if ($nativelanguage == constants::AIGRADE_FEEDBACK_TARGET_LANGUAGE) {
-            $nativelanguage = $this->moduleinstance->ttslanguage;
-        } else if ($nativelanguage == constants::AIGRADE_FEEDBACK_NATIVE_LANGUAGE) {
-            $nativelanguage = $this->moduleinstance->nativelang;
-        }
-        // If that did not work, set it en-US
-        if (empty($nativelanguage)) {
-            $nativelanguage = constants::M_LANG_ENUS;
-        }
-        $this->itemrecord->{self::NATIVE_LANGUAGE} = $nativelanguage;
-
-        // Students native language - it is possible to use the one set in wordcards here also, so we check for that.
-        $testitem->audiochatnativelanguage = $this->itemrecord->{self::NATIVE_LANGUAGE};
-        if (get_config(constants::M_COMPONENT, 'setnativelanguage')) {
-            $userprefnativelanguage = get_user_preferences(constants::NATIVELANG_PREF);
-            if (!empty($userprefnativelanguage)) {
-                $testitem->audiochatnativelanguage = $userprefnativelanguage;
-            }
-        }
+        $this->itemrecord->{self::NATIVE_LANGUAGE} = $this->fetch_item_native_language();
+        $testitem->audiochatnativelanguage = $this->fetch_student_native_language();
 
         // The AI feedback is written in the student's native language, so it is that language,
         // and not the lesson's target language, that decides the direction we display it in.
@@ -218,53 +231,16 @@ class itemtype extends item {
         }
 
         // Replace the placeholders in the audiochat instructions with the actual data.
-        $testitem->audiochatinstructions = str_replace(
-            [
-                '{ai role}',
-                '{ai voice}',
-                '{native language}',
-                '{target language}',
-                '{topic}',
-                '{ai data1}',
-                '{ai data2}',
-            ],
-            [
-                $this->itemrecord->{self::ROLE},
-                $this->itemrecord->{self::VOICE},
-                $testitem->audiochatnativelanguage,
-                $this->language,
-                $this->itemrecord->{self::TOPIC},
-                $this->itemrecord->{self::AIDATA1},
-                $this->itemrecord->{self::AIDATA2},
-            ],
-            $testitem->audiochatinstructions
+        $testitem->audiochatinstructions = $this->fill_placeholders(
+            $testitem->audiochatinstructions,
+            $testitem->audiochatnativelanguage
         );
 
         // Set up the audiochat grade instructions.
-        $testitem->audiochatgradeinstructions = $this->itemrecord->{self::FEEDBACKINSTRUCTIONS};
-        if (!empty($testitem->audiochatgradeinstructions)) {
-            $testitem->audiochatgradeinstructions = str_replace(
-                [
-                    '{ai role}',
-                    '{ai voice}',
-                    '{native language}',
-                    '{target language}',
-                    '{topic}',
-                    '{ai data1}',
-                    '{ai data2}',
-                ],
-                [
-                    $this->itemrecord->{self::ROLE},
-                    $this->itemrecord->{self::VOICE},
-                    $testitem->audiochatnativelanguage,
-                    $this->language,
-                    $this->itemrecord->{self::TOPIC},
-                    $this->itemrecord->{self::AIDATA1},
-                    $this->itemrecord->{self::AIDATA2},
-                ],
-                $testitem->audiochatgradeinstructions
-            );
-        }
+        $testitem->audiochatgradeinstructions = $this->fill_placeholders(
+            (string) $this->itemrecord->{self::FEEDBACKINSTRUCTIONS},
+            $testitem->audiochatnativelanguage
+        );
 
         // Set the Auto turn detection to on or off.
         $testitem->audiochat_autoresponse = $this->itemrecord->{self::AUTORESPONSE} ? true : false;
@@ -367,7 +343,9 @@ class itemtype extends item {
      */
     public static function aigen_fetch_import_spec() {
         $placeholdernote = 'May contain the placeholders {ai role}, {ai voice}, {target language}, '
-            . '{native language}, {ai data1}, {ai data2}, {student submission} and {topic}.';
+            . '{native language}, {feedback language}, {ai data1}, {ai data2}, {student submission} and {topic}. '
+            . 'Use {feedback language} for the language feedback is written in: it is the native language, '
+            . 'or an easy version of the target language when the two are the same.';
 
         $fields = static::aigen_common_import_field_specs(['type', 'name', 'visible', 'instructions', 'text',
             'timelimit', 'layout']);
@@ -392,8 +370,8 @@ class itemtype extends item {
                 'description' => 'The instructions that drive the AI\'s side of the conversation: its role, '
                     . 'what to discuss, how simply to speak, and how/when to end the chat (e.g. "after 3 speaking '
                     . 'turns, thank them and ask them to press the end button"). ' . $placeholdernote,
-                'example' => 'You are {ai role}. You are teaching {target language}. The student is a native '
-                    . 'speaker of {native language}. Today the discussion topic is: {topic}. Speak simply and '
+                'example' => 'You are {ai role}. You are teaching {target language}. The student is learning to '
+                    . 'speak {target language}. Today the discussion topic is: {topic}. Speak simply and '
                     . 'slowly, keep your responses brief, and give the student every opportunity to speak.',
             ],
             'audiochatgradeinstructions' => [
@@ -403,7 +381,7 @@ class itemtype extends item {
                     . 'When empty, the grade is calculated from the words spoken over the targetwordcount. '
                     . $placeholdernote,
                 'example' => 'For the score consider: relevance to the topic "{topic}", fluency and vocabulary '
-                    . 'usage. Feedback should be simple and in the student\'s native language: {native language}.',
+                    . 'usage. Feedback should be simple and in {feedback language}.',
             ],
             'audiochatvoice' => [
                 'description' => 'The AI\'s speaking voice, inserted where {ai voice} appears in the AI '
@@ -422,7 +400,8 @@ class itemtype extends item {
                 ],
             ],
             'audiochatnativelanguage' => [
-                'description' => 'The learner\'s native language, inserted where {native language} appears: '
+                'description' => 'The learner\'s native language, inserted where {native language} appears, '
+                    . 'and used for {feedback language}: '
                     . '"target" (the lesson language), "native" (the lesson\'s native language setting), '
                     . 'or a specific language code such as "ja-JP".',
                 'example' => 'native',
@@ -517,14 +496,14 @@ class itemtype extends item {
                         'audiochatvoice' => 'sage',
                         'audiochatnativelanguage' => 'native',
                         'audiochatinstructions' => 'You are {ai role}. Your name is {ai voice}. You are teaching '
-                            . '{target language}. The student is a native speaker of {native language}. Today the '
+                            . '{target language}. The student is learning to speak {target language}. Today the '
                             . 'discussion topic is: {topic}. Please discuss it with your student. Speak simply and '
                             . 'slowly. Your responses should be brief. Your aim is to give the student opportunity '
                             . 'to speak. After the student has had 3 speaking turns, thank them and ask them to '
                             . 'press the end button.',
                         'audiochatgradeinstructions' => 'For the score consider: relevance to the topic "{topic}", '
-                            . 'fluency and vocabulary usage. Feedback should be simple, and in the student\'s '
-                            . 'native language: {native language}.',
+                            . 'fluency and vocabulary usage. Feedback should be simple, and in '
+                            . '{feedback language}.',
                         'totalmarks' => 10,
                         'targetwordcount' => 30,
                         'autoresponse' => 0,
@@ -700,6 +679,110 @@ class itemtype extends item {
             return $audiochatinstruction;
         }
         return false;
+    }
+
+    /**
+     * The native language set on the item, resolved to a language code.
+     *
+     * @return string
+     */
+    public function fetch_item_native_language(): string {
+        $nativelanguage = $this->itemrecord->{self::NATIVE_LANGUAGE};
+        if ($nativelanguage == constants::AIGRADE_FEEDBACK_TARGET_LANGUAGE) {
+            $nativelanguage = $this->moduleinstance->ttslanguage;
+        } else if ($nativelanguage == constants::AIGRADE_FEEDBACK_NATIVE_LANGUAGE) {
+            $nativelanguage = $this->moduleinstance->nativelang;
+        }
+        // With no native language set ("--" is stored as '0'), use the target language.
+        if (empty($nativelanguage)) {
+            $nativelanguage = $this->moduleinstance->ttslanguage;
+        }
+        // If that did not work, set it en-US.
+        if (empty($nativelanguage)) {
+            $nativelanguage = constants::M_LANG_ENUS;
+        }
+        return $nativelanguage;
+    }
+
+    /**
+     * The current student's native language: the item's, unless the site lets students
+     * set their own (shared with wordcards) and this one has.
+     *
+     * @return string
+     */
+    public function fetch_student_native_language(): string {
+        if (get_config(constants::M_COMPONENT, 'setnativelanguage')) {
+            $userprefnativelanguage = get_user_preferences(constants::NATIVELANG_PREF);
+            if (!empty($userprefnativelanguage)) {
+                return $userprefnativelanguage;
+            }
+        }
+        return $this->fetch_item_native_language();
+    }
+
+    /**
+     * Replace the item placeholders in a prompt with the item's data.
+     *
+     * {student submission} is not replaced here: it is fetched separately, and only when needed.
+     *
+     * @param string $text the prompt
+     * {feedback language} is the native language, or an easy version of the target language when the
+     * native language is the target language.
+     *
+     * @param string $nativelanguage the student's native language code
+     * @return string
+     */
+    public function fill_placeholders(string $text, string $nativelanguage): string {
+        if ($text === '') {
+            return '';
+        }
+        $item = $this->itemrecord;
+        $role = !empty($item->{self::ROLE})
+            ? $item->{self::ROLE}
+            : get_string('audiochat_role_default', constants::M_COMPONENT);
+        $topic = $item->{self::TOPIC};
+        if (empty($topic)) {
+            $topic = !empty($item->itemtext) ? $item->itemtext : 'student choice of topic';
+        }
+        return str_replace(
+            [
+                '{ai role}',
+                '{ai voice}',
+                '{native language}',
+                '{feedback language}',
+                '{target language}',
+                '{topic}',
+                '{ai data1}',
+                '{ai data2}',
+            ],
+            [
+                $role,
+                $item->{self::VOICE},
+                $nativelanguage,
+                utils::fetch_feedback_language($nativelanguage, $this->language),
+                $this->language,
+                $topic,
+                $item->{self::AIDATA1},
+                $item->{self::AIDATA2},
+            ],
+            $text
+        );
+    }
+
+    /**
+     * The teacher's grading criteria for the chat, with every placeholder filled in.
+     *
+     * @return string empty if the item is not set up for AI grading
+     */
+    public function fetch_grade_criteria(): string {
+        $criteria = $this->fill_placeholders(
+            (string) $this->itemrecord->{self::FEEDBACKINSTRUCTIONS},
+            $this->fetch_student_native_language()
+        );
+        if ($criteria !== '' && strpos($criteria, '{student submission}') !== false) {
+            $criteria = str_replace('{student submission}', (string) $this->fetch_student_submission(), $criteria);
+        }
+        return $criteria;
     }
 
     public function fetch_student_submission() {
