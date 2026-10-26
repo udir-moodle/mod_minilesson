@@ -474,6 +474,13 @@ class renderer extends \plugin_renderer_base
             $gstarcnt = 5 - $ystarcnt;
             $result->graystars = array_fill(0, $gstarcnt, true);
 
+            // The results templates show lesson text in the lesson's direction. Attempts made
+            // before the direction was stored in the results data get it here.
+            if (isset($result->resultsdata) && is_object($result->resultsdata) && !isset($result->resultsdata->contentdir)) {
+                $result->resultsdata->contentdir = utils::get_text_direction($moduleinstance->ttslanguage);
+                $result->resultsdata->contentlang = $moduleinstance->ttslanguage;
+            }
+
             $iteminstance = utils::fetch_item_from_itemrecord($items, $moduleinstance, $context);
             $iteminstance->prepare_result($result, $itemquizdata);
 
@@ -485,6 +492,9 @@ class renderer extends \plugin_renderer_base
 
         // Course name at top of page.
         $tdata->coursename = $course->fullname;
+        // The direction and language of the lesson text in the results.
+        $tdata->contentdir = utils::get_text_direction($moduleinstance->ttslanguage);
+        $tdata->contentlang = $moduleinstance->ttslanguage;
         // Item stars.
         if ($latestattempt->sessionscore == 0) {
             $ystarcnt = 0;
@@ -596,6 +606,9 @@ class renderer extends \plugin_renderer_base
 
         $quizclass = constants::M_QUIZ_CONTAINER . ' ' . $moduleinstance->csskey . '
             ' . constants::M_COMPONENT . '_' . $moduleinstance->containerwidth;
+        if (($moduleinstance->nextbuttonalign ?? '') === constants::M_NEXTBUTTON_CENTER) {
+            $quizclass .= ' ' . constants::M_COMPONENT . '_nextbutton_center';
+        }
         $quizattributes = ['id' => constants::M_QUIZ_CONTAINER];
         if (!empty($moduleinstance->lessonfont)) {
             $quizattributes['style'] = "font-family: '$moduleinstance->lessonfont', serif;";
@@ -987,10 +1000,12 @@ class renderer extends \plugin_renderer_base
             'allowcontinueattempts',
             'region',
             'containerwidth',
+            'nextbuttonalign',
             'csskey',
             'lessonfont',
             'finishscreen',
             'finishscreencustom',
+            'nativelang',
         ];
 
         if ($scope == constants::PUSHMODE_MODULENAME) {
@@ -1016,6 +1031,12 @@ class renderer extends \plugin_renderer_base
                     break;
                 case 'containerwidth':
                     $action = constants::M_PUSH_CONTAINERWIDTH;
+                    break;
+                case 'nextbuttonalign':
+                    $action = constants::M_PUSH_NEXTBUTTONALIGN;
+                    break;
+                case 'nativelang':
+                    $action = constants::M_PUSH_NATIVELANG;
                     break;
                 case 'csskey':
                     $action = constants::M_PUSH_CSSKEY;

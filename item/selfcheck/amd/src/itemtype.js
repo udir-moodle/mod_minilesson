@@ -6,7 +6,7 @@ define(
 
         /*
         This file is to manage the self check item type.
-        The student records a sentence, hears model / own recording / model, and then approves it or tries again.
+        The student records a sentence, hears model / own recording (/ model, if set), and then approves it or tries again.
         There is no speech recognition.
         */
 
@@ -303,6 +303,8 @@ define(
 
             show_item_review: function () {
                 var self = this;
+                // On the lesson's last item, the results page is where the next button finishes the lesson.
+                self.quizhelper.set_finish_label(self.index, true);
                 var reviewdata = {};
                 reviewdata.correctitems = self.items.filter(function (e) {
                     return e.correct;
@@ -310,6 +312,9 @@ define(
                 reviewdata.totalitems = self.items.length;
                 reviewdata.items = self.items_for_results_display(true);
 
+                // The results list the lesson text, so they take its direction.
+                reviewdata.contentdir = self.itemdata.contentdir;
+                reviewdata.contentlang = self.itemdata.contentlang;
                 templates.render('mod_minilesson/listitemresults', reviewdata).then(
                     function (html, js) {
                         self.resultsbox.html(html);
@@ -354,8 +359,9 @@ define(
                 code += item.displayprompt || item.prompt;
                 code += "</div>";
                 if (item.hintdisplay) {
-                    var rtl = self.itemdata.hintrtl ? ' rtl' : '';
-                    code += "<div class='fluency_prompt_hint" + rtl + "'>";
+                    // The hint is in the native language, so it does not take the direction of the lesson text.
+                    var hintdir = self.itemdata.hintrtl ? 'rtl' : 'auto';
+                    code += "<div class='fluency_prompt_hint' dir='" + hintdir + "'>";
                     code += item.target;
                     code += "</div>";
                 }
@@ -425,7 +431,7 @@ define(
                 }, self.comparedelay);
             },
 
-            // Play the model audio, the student's recording and the model audio again.
+            // Play the model audio and the student's recording, then the model audio again if the item says so.
             play_compare: function () {
                 var self = this;
                 var item = self.items[self.game.pointer];
@@ -437,7 +443,7 @@ define(
                     steps.push({button: self.modelbtn, audio: item.audio});
                 }
                 steps.push({button: self.selfbtn, audio: item.audioself});
-                if (item.audio) {
+                if (item.audio && self.itemdata.replaymodel) {
                     steps.push({button: self.modelbtn, audio: item.audio});
                 }
 

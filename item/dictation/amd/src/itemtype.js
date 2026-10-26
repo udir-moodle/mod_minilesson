@@ -64,6 +64,8 @@ define(['jquery',
 
         show_item_review:function () {
             var self = this;
+            // On the lesson's last item, the results page is where the next button finishes the lesson.
+            self.quizhelper.set_finish_label(self.index, true);
           //build review data
             var review_data = {};
             review_data.correctitems = $('#' + self.itemdata.uniqueid + '_container .dictate-feedback.fa-check').length;
@@ -79,7 +81,10 @@ define(['jquery',
           //display results
             var gamebox = $("#" + self.itemdata.uniqueid + "_container .ml_dictation_rows");
             var resultsbox = $("#" + self.itemdata.uniqueid + "_container .ml_dictation_resultscontainer");
-            templates.render('mod_minilesson/listitemresults',review_data).then(
+            // The results list the lesson text, so they take its direction.
+            review_data.contentdir = self.itemdata.contentdir;
+            review_data.contentlang = self.itemdata.contentlang;
+            templates.render('mod_minilesson/listitemresults', review_data).then(
                 function (html,js) {
                     resultsbox.html(html);
                     //show and hide

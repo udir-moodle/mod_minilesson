@@ -418,6 +418,12 @@ abstract class item implements \templatable, \renderable {
         . 'Give the item a numeric "filesid" property, and add a top level "files" object to the payload: '
         . '{"files": {"<filesid>": {"<filearea>": {"<filename>": "<base64 data>"}}}}. '
         . 'The file areas accepted by each item type are listed in its import spec. '
+        . 'To have the server generate an image instead of supplying one, add a top level "fileprompts" object of the same '
+        . 'shape holding image prompts: {"fileprompts": {"<filesid>": {"<filearea>": {"<filename>": "<image prompt>"}}}}. '
+        . 'The generated image is stored under that filesid, filearea and filename, so name the file the item refers to. '
+        . 'Image file areas only, at most ' . constants::MAX_IMPORT_IMAGE_PROMPTS . ' prompts per import, and an optional '
+        . 'top level "imagecontext" string (topic or style) is added to every prompt. Describe the picture, not any text on it. '
+        . 'Prompts that fail are returned in "imagefailures"; the item is still imported without the image. '
         . 'Prefer the tts fields over uploading audio files: tts audio is generated automatically by the server.';
 
     /**
@@ -1016,6 +1022,7 @@ abstract class item implements \templatable, \renderable {
             $testitem->ttsdialogsourcelang = $tc->sourcelang;
             $testitem->ttsdialognativelang = $tc->destlang;
             $testitem->ttsdialogcantranslate = $tc->cantranslate;
+            $testitem->ttsdialognativedir = $tc->dir;
             $testitem->ttsdialognativelangrtl = $tc->rtlclass;
         } // end of tts dialog
 
@@ -1163,7 +1170,14 @@ abstract class item implements \templatable, \renderable {
         // Show text prompt or dots, for listen and repeat really.
         $testitem->show_text = $itemrecord->{constants::SHOWTEXTPROMPT};
 
-        // For right to left languages we want to add the RTL direction and right justify.
+        // The lesson text reads in the direction of the language it is taught in, whatever the
+        // direction of the page around it. Templates set it with dir and lang attributes on the
+        // elements that hold lesson text (see utils::get_text_direction() for why not CSS).
+        $testitem->contentdir = utils::get_text_direction($this->moduleinstance->ttslanguage);
+        $testitem->contentlang = $this->moduleinstance->ttslanguage;
+
+        // Deprecated: an RTL class for item types that do not use contentdir yet. It only covers
+        // right to left lesson text, so it cannot keep a left to right lesson readable on an RTL site.
         if (utils::is_rtl($this->moduleinstance->ttslanguage)) {
             $testitem->rtl = constants::M_CLASS . '_rtl';
         } else {
@@ -2430,7 +2444,7 @@ abstract class item implements \templatable, \renderable {
      * language. Translation is offered only when the activity allows it and the native
      * language is set and differs from the language the lesson is taught in.
      *
-     * @return \stdClass cantranslate, cmid, itemid, sourcelang, destlang and rtlclass.
+     * @return \stdClass cantranslate, cmid, itemid, sourcelang, destlang, dir and rtlclass (deprecated).
      */
     public function get_translation_context() {
         $tc = new \stdClass();
@@ -2444,6 +2458,7 @@ abstract class item implements \templatable, \renderable {
             && !empty($tc->destlang) && $basesource !== $basedest;
         // The translation reads in the direction of the native language, which is
         // independent of the direction of the language the lesson is taught in.
+        $tc->dir = utils::get_text_direction($tc->destlang);
         $tc->rtlclass = utils::is_rtl($tc->destlang) ? constants::M_CLASS . '_rtl' : '';
         return $tc;
     }
@@ -2469,6 +2484,7 @@ abstract class item implements \templatable, \renderable {
         $data->translateitemid = $tc->itemid;
         $data->translatesourcelang = $tc->sourcelang;
         $data->translatedestlang = $tc->destlang;
+        $data->translatedir = $tc->dir;
         $data->translatertl = $tc->rtlclass;
         $data->translatetext = $plaintext;
         $keepterms = !empty($this->itemrecord) ? static::get_translation_keepterms($this->itemrecord) : [];
@@ -2626,6 +2642,19 @@ abstract class item implements \templatable, \renderable {
      * @return bool
      */
     public function uses_boxed_layout() {
+        return false;
+    }
+
+    /**
+     * Does this item type show the learner a results page of its own, after the work, when the
+     * activity's "show item review" setting is on? The next button sits under both pages, and on
+     * the lesson's last item it should only say "Finish" on the results page. Item types that
+     * override this to return true must call quizhelper.set_finish_label(index, true) in their JS
+     * when they show their results (and set_finish_label(index, false) if the learner goes back).
+     *
+     * @return bool
+     */
+    public function has_results_page() {
         return false;
     }
 

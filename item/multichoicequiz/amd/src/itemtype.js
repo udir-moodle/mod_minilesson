@@ -372,6 +372,8 @@ define(['jquery',
 
         show_item_review: function () {
             var self = this;
+            // On the lesson's last item, the results page is where the next button finishes the lesson.
+            self.quizhelper.set_finish_label(self.index, true);
             var review_data = {};
             //show the correct answer alongside the question text, green if they got it, red if not
             self.items.forEach(function (item) {
@@ -389,6 +391,9 @@ define(['jquery',
                 return e.correct;
             }).length;
 
+            // The results list the lesson text, so they take its direction.
+            review_data.contentdir = self.itemdata.contentdir;
+            review_data.contentlang = self.itemdata.contentlang;
             templates.render('mod_minilesson/listitemresults', review_data).then(
                 function (html, js) {
                     self.controls.resultscontainer.html(html);
