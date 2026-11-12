@@ -25,6 +25,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['additem'] = 'SmartFrame';
-$string['item_desc'] = 'Mục SmartFrame là phần giữ chỗ cho một loại mục chưa được phát triển.';
-$string['pluginname'] = 'SmartFrame';
+$string['additem'] = 'Smart Frame';
+$string['item_desc'] = 'Smart Frame tải một trang HTML đã tải lên vào một khung bên trong Minilesson. Mục này hiển thị tốt trên mọi màn hình, an toàn và có thể chấm điểm. Có thể dùng cho widget giải thích, hoạt động tương tác tự tạo hoặc thậm chí trò chơi.';
+$string['pluginname'] = 'Smart Frame';

@@ -25,6 +25,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['additem'] = 'SmartFrame';
-$string['item_desc'] = 'Елемент SmartFrame — це заглушка для типу елемента, який ще не розроблено.';
-$string['pluginname'] = 'SmartFrame';
+$string['additem'] = 'Smart Frame';
+$string['item_desc'] = 'Smart Frame завантажує вивантажену HTML-сторінку в рамку всередині Minilesson. Він адаптивний, безпечний і може виставляти оцінку. Його можна використовувати для пояснювальних віджетів, власних інтерактивних вправ або навіть ігор.';
+$string['pluginname'] = 'Smart Frame';

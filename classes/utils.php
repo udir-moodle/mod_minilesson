@@ -519,6 +519,45 @@ class utils {
     }
 
     /**
+     * The language AI feedback is given in, for free writing, free speaking and audio chat.
+     *
+     * @param string $feedbacksetting the item's feedback language setting: "target", "native" or a language code
+     * @param \stdClass $moduleinstance the minilesson record
+     * @param \stdClass $conf the minilesson config
+     * @return string a locale code, e.g. ja-JP
+     */
+    public static function fetch_aigrade_feedback_language($feedbacksetting, $moduleinstance, $conf) {
+        $feedbacklanguage = $feedbacksetting;
+        if ($feedbacklanguage == constants::AIGRADE_FEEDBACK_TARGET_LANGUAGE) {
+            $feedbacklanguage = $moduleinstance->ttslanguage;
+        } else if ($feedbacklanguage == constants::AIGRADE_FEEDBACK_NATIVE_LANGUAGE) {
+            $feedbacklanguage = $moduleinstance->nativelang;
+        }
+        // With no native language set ("--" is stored as '0'), feedback is in the target language.
+        if (empty($feedbacklanguage)) {
+            $feedbacklanguage = $moduleinstance->ttslanguage;
+        }
+
+        // The learner's own native language replaces the activity's, where the item gives feedback in the
+        // activity's native language: set to "native", or (in older items) to that language's code. An item
+        // set to the target language, or to any other language, keeps it.
+        $feedbackshort = self::fetch_short_lang($feedbacklanguage);
+        $tonative = $feedbacksetting == constants::AIGRADE_FEEDBACK_NATIVE_LANGUAGE
+            || ($feedbacksetting != constants::AIGRADE_FEEDBACK_TARGET_LANGUAGE
+                && !empty($moduleinstance->nativelang)
+                && $feedbackshort == self::fetch_short_lang($moduleinstance->nativelang));
+        if (!empty($conf->setnativelanguage) && !empty($moduleinstance->nativetranslation) && $tonative) {
+            $userprefdeflanguage = get_user_preferences(constants::NATIVELANG_PREF);
+            if (!empty($userprefdeflanguage)) {
+                // Poodll WordCards stores 2 letter codes, but Poodll AI expects a locale code.
+                $feedbacklanguage = self::lang_to_locale($userprefdeflanguage);
+            }
+        }
+
+        return $feedbacklanguage;
+    }
+
+    /**
      * Call a Cloud Poodll web service function and return the JSON decoded response.
      *
      * @param string $functionname the web service function to call
@@ -894,7 +933,7 @@ class utils {
     }
 
     public static function fetch_cloudpoodll_audiochat_token($contextid, $voice, $disablevad, $resumehandle = '',
-        $silencedurationms = 0, $turnmode = '', $model = '', $inputlanguage = '') {
+        $silencedurationms = 0, $turnmode = '', $model = '', $inputlanguage = '', $tools = '') {
 
         $cloudpoodlltoken = false;
         $conf = get_config(constants::M_COMPONENT);
@@ -938,6 +977,12 @@ class utils {
         }
         if ($inputlanguage !== '') {
             $params['inputlanguage'] = $inputlanguage;
+        }
+        // The AI's tools (comma separated names, e.g. "show_media,end_chat"). The cloud endpoint must
+        // bake their declarations into the token: the Constrained endpoint drops tools the client
+        // declares itself. Sent only when the item uses tools, as an older cloud server rejects the key.
+        if ($tools !== '') {
+            $params['tools'] = $tools;
         }
 
         $serverurl = self::get_cloud_poodll_server() . '/webservice/rest/server.php';
@@ -1158,29 +1203,11 @@ class utils {
         $moduleinstance = $DB->get_record(constants::M_MODNAME, ['id' => $cm->instance], '*', MUST_EXIST);
         $item = $DB->get_record(constants::M_QTABLE, ['id' => $itemid, 'minilesson' => $moduleinstance->id], '*', MUST_EXIST);
 
-        // Feedback language for AI instructions
-        $feedbacklanguage = $item->{constants::AIGRADE_FEEDBACK_LANGUAGE};
-        if ($feedbacklanguage == constants::AIGRADE_FEEDBACK_TARGET_LANGUAGE) {
-            $feedbacklanguage = $moduleinstance->ttslanguage;
-        } else if ($feedbacklanguage == constants::AIGRADE_FEEDBACK_NATIVE_LANGUAGE) {
-            $feedbacklanguage = $moduleinstance->nativelang;
-        }
-        // With no native language set ("--" is stored as '0'), feedback is in the target language.
-        if (empty($feedbacklanguage)) {
-            $feedbacklanguage = $moduleinstance->ttslanguage;
-        }
-
-        if ($conf->setnativelanguage) {
-            $userprefdeflanguage = get_user_preferences(constants::NATIVELANG_PREF);
-            if (!empty($userprefdeflanguage)) {
-                // the WC language is 2 char but Poodll AI expects a locale code
-                $wclanguage = self::lang_to_locale($userprefdeflanguage);
-                // if we did get a locale code lets use that.
-                if ($wclanguage !== $userprefdeflanguage && $wclanguage !== $feedbacklanguage) {
-                    $feedbacklanguage = $wclanguage;
-                }
-            }
-        }
+        $feedbacklanguage = self::fetch_aigrade_feedback_language(
+            $item->{constants::AIGRADE_FEEDBACK_LANGUAGE},
+            $moduleinstance,
+            $conf
+        );
 
         // AI Grade
         $maxmarks = $item->{constants::TOTALMARKS};
@@ -2277,6 +2304,9 @@ class utils {
             if ($langcode === constants::M_LANG_TEIN) {
                 $langs[constants::M_LANG_TIER] = get_string('ti-er', constants::M_COMPONENT);
             }
+            if ($langcode === constants::M_LANG_ZHCN) {
+                $langs[constants::M_LANG_ZHTW] = get_string('zh-tw', constants::M_COMPONENT);
+            }
         }
         return $langs;
     }
@@ -2333,6 +2363,7 @@ class utils {
             'bg' => constants::M_LANG_BGBG,
             'hr' => constants::M_LANG_HRHR,
             'zh' => constants::M_LANG_ZHCN,
+            'zh_tw' => constants::M_LANG_ZHTW,
             'cs' => constants::M_LANG_CSCZ,
             'da' => constants::M_LANG_DADK,
             'nl' => constants::M_LANG_NLNL,
@@ -2524,7 +2555,7 @@ class utils {
         $mform->addHelpButton('nativelang', 'nativelang', constants::M_COMPONENT);
         $mform->setDefault('nativelang', $config->nativelang);
 
-        // Native language translation.
+        // Native language features: the translate button, local translations and the learner's own native language.
         $mform->addElement(
             'selectyesno',
             'nativetranslation',
@@ -3166,7 +3197,7 @@ class utils {
                 $ret = "Swedish";
                 break; // => get_string('sv-se', constants::M_COMPONENT),
             case  constants::M_LANG_UKUA:
-                $ret = "Ukranian";
+                $ret = "Ukrainian";
                 break; // => get_string('uk-ua', constants::M_COMPONENT),
             case  constants::M_LANG_EUES:
                 $ret = "Basque";
@@ -3185,6 +3216,9 @@ class utils {
                 break;
             case constants::M_LANG_TIER:
                 $ret = "Tigrinya";
+                break;
+            case constants::M_LANG_ZHTW:
+                $ret = "Chinese (Traditional)";
                 break;
         }
         return $ret;

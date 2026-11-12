@@ -25,6 +25,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['additem'] = 'SmartFrame';
-$string['item_desc'] = 'SmartFrame-osio on paikkamerkki osiotyypille, jota ei ole vielä kehitetty.';
-$string['pluginname'] = 'SmartFrame';
+$string['additem'] = 'Smart Frame';
+$string['item_desc'] = 'Smart Frame näyttää ladatun HTML-sivun kehyksessä Minilesson-oppitunnin sisällä. Se on responsiivinen ja turvallinen, ja se voi antaa arvosanan. Sitä voi käyttää selittäviin widgetteihin, omiin interaktiivisiin tehtäviin tai jopa peleihin.';
+$string['pluginname'] = 'Smart Frame';

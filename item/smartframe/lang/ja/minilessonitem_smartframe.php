@@ -25,6 +25,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['additem'] = 'SmartFrame';
-$string['item_desc'] = 'SmartFrame 項目は、まだ開発されていない項目タイプのプレースホルダーです。';
-$string['pluginname'] = 'SmartFrame';
+$string['additem'] = 'Smart Frame';
+$string['item_desc'] = 'Smart Frame は、アップロードした HTML ページを Minilesson 内のフレームに読み込みます。レスポンシブで安全に動作し、評点を出すこともできます。解説用ウィジェット、独自のインタラクティブな活動、さらにはゲームにも使えます。';
+$string['pluginname'] = 'Smart Frame';

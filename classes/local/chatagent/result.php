@@ -33,6 +33,12 @@ class result {
     /** @var string Model wants a tool run before it can continue. */
     const STATUS_REQUIRES_ACTION = 'requires_action';
 
+    /**
+     * @var string The call was started in the background and has not finished. Only
+     * $interactionid is set; ask the driver's get_interaction() for it again later.
+     */
+    const STATUS_RUNNING = 'running';
+
     /** @var string The call did not produce a usable turn; see $errorcode. */
     const STATUS_FAILED = 'failed';
 
@@ -53,6 +59,15 @@ class result {
      * stored transcript instead of surfacing an error.
      */
     const ERROR_EXPIRED = 'expired';
+
+    /**
+     * The model took too long to reply, and the call was cut off. Trying the same request again
+     * usually fails the same way, so the teacher is told to ask for something smaller.
+     */
+    const ERROR_TIMEOUT = 'timeout';
+
+    /** @var string The reply used up the model's output allowance before it finished. */
+    const ERROR_TOOLONG = 'toolong';
 
     /** @var string A response arrived but could not be understood. */
     const ERROR_TRANSPORT = 'transport';
@@ -84,6 +99,12 @@ class result {
     public ?string $errorcode = null;
 
     /**
+     * @var bool Whether the failure was the provider being briefly unable to answer (a 5xx such as
+     * "service unavailable"). Asking again later may well work: a background call is still running.
+     */
+    public bool $transient = false;
+
+    /**
      * Build a failure result.
      *
      * @param string $errorcode one of the ERROR_* constants
@@ -105,6 +126,15 @@ class result {
      */
     public function failed(): bool {
         return $this->status === self::STATUS_FAILED;
+    }
+
+    /**
+     * Whether the call is still running in the background.
+     *
+     * @return bool
+     */
+    public function running(): bool {
+        return $this->status === self::STATUS_RUNNING;
     }
 
     /**

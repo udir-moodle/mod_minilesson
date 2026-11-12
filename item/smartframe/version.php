@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version information for SmartFrame
+ * Version information for Smart Frame
  *
  * @package    minilessonitem_smartframe
  * @copyright  2026 Justin Hunt (poodllsupport@gmail.com)
@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component    = 'minilessonitem_smartframe';
-$plugin->release      = '1.0';
-$plugin->version      = 2026041000;
+$plugin->release      = '2.0';
+$plugin->version      = 2026110900;
 $plugin->requires     = 2022041900;
 $plugin->supported    = [400, 501];
 $plugin->maturity     = MATURITY_STABLE;

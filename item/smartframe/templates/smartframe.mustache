@@ -1,3 +1,50 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template minilessonitem_smartframe/smartframe
+
+    A widget item. The iframe has no src here: the item's JS sets it once it is listening for the widget's
+    messages, so the widget's first message can not be missed.
+
+    The sandbox lets the widget run scripts but not keep Moodle's origin, so it runs in an opaque origin of
+    its own and can not reach Moodle's cookies or pages. Never add allow-same-origin: the widget is served
+    from Moodle's site. (widget.php sends the same sandbox as a policy header too, which also covers a widget
+    page opened in a tab of its own.) allow-forms is there because a form submit in a sandbox without it is
+    dropped before the submit event, which breaks widgets that handle submit in JS.
+
+    Example context (json):
+    {
+        "uniqueid": "item1",
+        "widgeturl": "https://school.example.org/mod/minilesson/item/smartframe/widget.php/12/0123/index.html?lang=en&parentOrigin=https%3A%2F%2Fschool.example.org",
+        "widgettitle": "Greetings"
+    }
+}}
 {{> mod_minilesson/questionheader}}
-  <iframe src="{{{customtext1}}}&itemid={{id}}" allow="camera;microphone" style="padding:20px;border:1px solid lightgray;width:100%;height:800px" ></iframe>
+<div class="minilessonitem_smartframe_widget">
+    {{#widgeturl}}
+        <iframe class="minilessonitem_smartframe_frame"
+                title="{{widgettitle}}"
+                sandbox="allow-scripts allow-forms"
+                referrerpolicy="no-referrer"
+                loading="lazy"
+                style="display:block;width:100%;height:360px;border:0;"></iframe>
+    {{/widgeturl}}
+    {{^widgeturl}}
+        <div class="alert alert-info">{{#str}}widgetnotavailable, minilessonitem_smartframe{{/str}}</div>
+    {{/widgeturl}}
+</div>
 {{> mod_minilesson/questionfooter}}

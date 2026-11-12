@@ -18,6 +18,7 @@ namespace mod_minilesson\local\itemtype;
 
 use core_plugin_manager;
 use mod_minilesson\constants;
+use mod_minilesson\local\localtranslations;
 use mod_minilesson\plugininfo\minilessonitem;
 use mod_minilesson\utils;
 use stdClass;
@@ -256,6 +257,31 @@ abstract class item implements \templatable, \renderable {
 
         // return false to indicate no error
         return false;
+    }
+
+    /**
+     * Adjust an item's export object before it is written: lets an item type export a field in a friendlier
+     * form than the generic code does (e.g. a file as text), or leave out what an import works out again.
+     * Whatever it writes, its import must accept. The default changes nothing.
+     *
+     * @param \stdClass $itemobj the item's export object, with its files in ->files[filearea][filename] as base64
+     * @param \stdClass $itemrecord the item's record
+     * @return \stdClass the export object
+     */
+    public static function export_item_adjust(\stdClass $itemobj, \stdClass $itemrecord): \stdClass {
+        return $itemobj;
+    }
+
+    /**
+     * Things in an import record worth fixing that do not stop the item working. Unlike
+     * validate_import(), these never refuse the item: the import reports them alongside it.
+     *
+     * @param \stdClass $newrecord the db-ready import record
+     * @param \stdClass $cm the course module
+     * @return array warning messages, empty when there is nothing to say
+     */
+    public static function import_warnings($newrecord, $cm) {
+        return [];
     }
 
     /**
@@ -1793,6 +1819,12 @@ abstract class item implements \templatable, \renderable {
             // create a rsquestionkey
             $theitem->rsquestionkey = self::create_itemkey();
 
+            // A new item may arrive with local translations (an import). They are only taken on insert: several
+            // callers save an item row they read earlier, which would overwrite translations made since.
+            if (property_exists($data, 'localtranslations')) {
+                $theitem->localtranslations = $data->localtranslations;
+            }
+
             // try to insert it
             if (!$theitem->id = $DB->insert_record(constants::M_QTABLE, $theitem)) {
                 $ret->error = true;
@@ -2092,42 +2124,91 @@ abstract class item implements \templatable, \renderable {
             }
         }
 
+        // The teacher asked for the translations to be made again: drop them, and the save below queues new ones.
+        if (!empty($data->regeneratelocaltranslations)) {
+            $theitem->localtranslations = null;
+        }
+
         // Now update the db once we have saved files and stuff.
         if (!$DB->update_record(constants::M_QTABLE, $theitem)) {
             $ret->error = true;
             $ret->message = "Could not update minilesson item!";
             return $ret;
         } else {
+            // Every item save comes through here, so this is where new native language text gets translated.
+            localtranslations::item_saved($theitem->id);
             $ret->item = $theitem;
             return $ret;
         }
     } // End of edit_insert_question.
 
+    /**
+     * Delete an item and all of its files.
+     *
+     * @param int $itemid the item
+     * @param \context $context the lesson's context
+     * @return bool true when deleted
+     */
     public static function delete_item($itemid, $context) {
         global $DB;
-        $ret = false;
+
+        // The item type may keep things of its own, outside the item's file areas (a published widget).
+        $record = $DB->get_record(constants::M_QTABLE, ['id' => $itemid]);
+        if ($record) {
+            $theitem = utils::fetch_item_from_itemrecord($record, false, $context);
+            if ($theitem) {
+                $theitem->before_delete();
+            }
+        }
 
         if (!$DB->delete_records(constants::M_QTABLE, ['id' => $itemid])) {
             throw new \moodle_exception("Could not delete item");
-            return $ret;
         }
-        // remove files
+
         $fs = get_file_storage();
-
-        $fileareas = [
-            constants::TEXTPROMPT_FILEAREA,
-            constants::TEXTPROMPT_FILEAREA . '1',
-            constants::TEXTPROMPT_FILEAREA . '2',
-            constants::TEXTPROMPT_FILEAREA . '3',
-            constants::TEXTPROMPT_FILEAREA . '4',
-            constants::MEDIAQUESTION,
-        ];
-
-        foreach ($fileareas as $filearea) {
+        foreach (self::get_item_fileareas($context, (int) $itemid) as $filearea) {
             $fs->delete_area_files($context->id, constants::M_COMPONENT, $filearea, $itemid);
         }
-        $ret = true;
-        return $ret;
+        return true;
+    }
+
+    /**
+     * The file areas that hold files of one item.
+     *
+     * Read from the files that exist, rather than from a list, so that an item type's own file areas (a widget
+     * package, slides, a picture for a chat) are found too. Only areas named the way item file areas are named
+     * count: the lesson keeps other files of its own under the same item ids (its intro, the AI assistant's).
+     *
+     * @param \context $context the lesson's context
+     * @param int $itemid the item
+     * @return string[] file area names
+     */
+    public static function get_item_fileareas(\context $context, int $itemid): array {
+        global $DB;
+        $areas = $DB->get_fieldset_sql(
+            'SELECT DISTINCT filearea FROM {files} WHERE contextid = ? AND component = ? AND itemid = ?',
+            [$context->id, constants::M_COMPONENT, $itemid]
+        );
+        $pattern = '/^(' . constants::MEDIAQUESTION . '|' . constants::AUDIOSTORY . '|' . constants::TEXTQUESTION_FILEAREA
+            . '|' . constants::TEXTPROMPT_FILEAREA . '\d*|' . constants::FILEANSWER . '\d+(_image|_audio)?|'
+            . constants::TEXTANSWER_FILEAREA . '\d+)$/';
+        return array_values(array_filter($areas, function ($area) use ($pattern) {
+            return preg_match($pattern, $area) === 1;
+        }));
+    }
+
+    /**
+     * Called just before the item is deleted, for an item type that keeps things of its own outside the item's
+     * file areas. The item's row and file areas are deleted after this whatever it does.
+     */
+    public function before_delete(): void {
+    }
+
+    /**
+     * Called after the item's files were changed other than by its own save: copied with the item, or uploaded
+     * on their own. An item type that works something out from its files (a widget it publishes) does it here.
+     */
+    public function files_changed(): void {
     }
 
 
@@ -2410,6 +2491,174 @@ abstract class item implements \templatable, \renderable {
     }
 
     /**
+     * The native language text of an item that local translations translate ahead of time:
+     * hints, card translations, matching words. Item types with such text override this.
+     *
+     * It works on the raw item row, with no rendering, because it also runs in a background task.
+     * Each entry is the text as written and its context: the lesson language text it belongs to,
+     * which tells the AI which meaning of a word is meant.
+     *
+     * @param \stdClass $itemrecord The item's row from the minilesson_rsquestions table.
+     * @return array of ['text' => string, 'context' => string]
+     */
+    public static function get_local_translatables(\stdClass $itemrecord) {
+        return [];
+    }
+
+    /**
+     * Swap the item's native language text in the template data for its translation.
+     * Item types that override get_local_translatables() override this too.
+     *
+     * @param \stdClass $testitem The template data.
+     * @param callable $lookup Takes the text as written, returns its translation or null.
+     * @param string $lang The language of the translations, for the text direction.
+     * @return \stdClass The template data.
+     */
+    public function apply_local_translations(\stdClass $testitem, callable $lookup, string $lang) {
+        return $testitem;
+    }
+
+    /**
+     * Show the item's native language text in the learner's native language, where a translation is
+     * stored. Item types call this at the end of export_for_template(), once their text is parsed.
+     *
+     * @param \stdClass $testitem The template data.
+     * @return \stdClass The template data.
+     */
+    protected function set_local_translations(\stdClass $testitem) {
+        $found = localtranslations::get_lookup($this->itemrecord, $this->moduleinstance, $this->get_native_language());
+        if ($found === null) {
+            return $testitem;
+        }
+        [$lookup, $lang] = $found;
+        return $this->apply_local_translations($testitem, $lookup, $lang);
+    }
+
+    /**
+     * Local translatables for the "sentence|hint" line format (one per line in customtext1), used by the
+     * gap-fill items, wordshuffle, fluency and selfcheck: the hint, with the sentence as its context.
+     * Gap markers are taken out of the sentence.
+     *
+     * @param \stdClass $itemrecord The item's row.
+     * @return array of ['text' => string, 'context' => string]
+     */
+    protected static function get_hint_local_translatables(\stdClass $itemrecord) {
+        $translatables = [];
+        foreach (preg_split('/\R/u', (string) ($itemrecord->customtext1 ?? '')) as $line) {
+            $parts = explode('|', utils::super_trim($line));
+            $hint = utils::super_trim($parts[1] ?? '');
+            if ($hint !== '') {
+                $translatables[] = ['text' => $hint, 'context' => str_replace(['[', ']'], '', utils::super_trim($parts[0]))];
+            }
+        }
+        return $translatables;
+    }
+
+    /**
+     * Local translatables for the pair line format ("term|match", one per line in customtext1):
+     * the match, with the term as its context.
+     *
+     * @param \stdClass $itemrecord The item's row.
+     * @param int $limit As for explode(): 2 keeps any further pipes in the match.
+     * @return array of ['text' => string, 'context' => string]
+     */
+    protected static function get_pair_local_translatables(\stdClass $itemrecord, int $limit = PHP_INT_MAX) {
+        $translatables = [];
+        foreach (preg_split('/\R/u', (string) ($itemrecord->customtext1 ?? '')) as $line) {
+            $parts = explode('|', utils::super_trim($line), $limit);
+            $match = utils::super_trim($parts[1] ?? '');
+            if ($match !== '') {
+                $translatables[] = ['text' => $match, 'context' => utils::super_trim($parts[0])];
+            }
+        }
+        return $translatables;
+    }
+
+    /**
+     * Translate the matches of a matching game, if that keeps them all different.
+     *
+     * In a matching game two matches that read the same make a pair impossible to tell apart. A language
+     * can give one word for two different ones, so then the item keeps its original text in that language.
+     *
+     * @param string[] $matches The matches as written, keyed as the caller likes.
+     * @param callable $lookup From set_local_translations().
+     * @return array|null [the matches, translated where possible, keyed as given; true if all were translated],
+     *                    or null if none were translated or two would read the same
+     */
+    protected static function translate_matches(array $matches, callable $lookup) {
+        $translated = [];
+        $complete = true;
+        $any = false;
+        foreach ($matches as $key => $match) {
+            $translation = $match === '' ? null : $lookup($match);
+            if ($translation === null) {
+                $complete = $complete && $match === '';
+                $translated[$key] = $match;
+            } else {
+                $any = true;
+                $translated[$key] = $translation;
+            }
+        }
+        if (!$any) {
+            return null;
+        }
+        $normalise = function ($text) {
+            return \core_text::strtolower(utils::super_trim($text));
+        };
+        $before = array_unique(array_map($normalise, array_filter($matches, 'strlen')));
+        $after = array_unique(array_map($normalise, array_filter($translated, 'strlen')));
+        if (count($after) < count($before)) {
+            return null;
+        }
+        return [$translated, $complete];
+    }
+
+    /**
+     * Put translated hints into sentence data, and set the hint direction for them.
+     *
+     * Sentence data made by process_spoken_sentences() holds the hint in ->sentence when ->hintdisplay
+     * is true, and the spoken text otherwise, so a sentence with hintdisplay false is skipped.
+     *
+     * The author's "hints are right to left" option describes the author's language. Once all hints are
+     * translated the direction is that of the translation language; with some translated and some not,
+     * it is left to the browser.
+     *
+     * @param \stdClass $testitem The template data, with ->sentences.
+     * @param callable $lookup From set_local_translations().
+     * @param string $lang The language of the translations.
+     * @param string $hintfield The property of each sentence that holds the hint.
+     * @return \stdClass The template data.
+     */
+    protected function apply_hint_local_translations(
+        \stdClass $testitem,
+        callable $lookup,
+        string $lang,
+        string $hintfield = 'definition'
+    ) {
+        $translated = 0;
+        $untranslated = 0;
+        foreach ($testitem->sentences ?? [] as $sentence) {
+            if (!isset($sentence->{$hintfield}) || $sentence->{$hintfield} === '') {
+                continue;
+            }
+            if (isset($sentence->hintdisplay) && !$sentence->hintdisplay) {
+                continue;
+            }
+            $translation = $lookup($sentence->{$hintfield});
+            if ($translation === null) {
+                $untranslated++;
+            } else {
+                $sentence->{$hintfield} = $translation;
+                $translated++;
+            }
+        }
+        if ($translated) {
+            $testitem->hintrtl = $untranslated === 0 && utils::is_rtl($lang);
+        }
+        return $testitem;
+    }
+
+    /**
      * Phrases of an item that must stay in the language of the lesson when the item's text is
      * translated into the learner's native language. Feedback that explains an answer quotes the
      * answer options, and translating those would hide the very words the learner is studying.
@@ -2513,7 +2762,7 @@ abstract class item implements \templatable, \renderable {
     /**
      * Swap the phrases of a text that must not be translated for [[n]] placeholders.
      *
-     * Two kinds of phrase are kept: anything inside double quotation marks, and for each keep term
+     * Two kinds of phrase are kept: anything inside quotation marks, and for each keep term
      * (e.g. an answer option) the longest run of its words that the text repeats. A run must be the
      * whole keep term, or at least two words and at least half of it, so that "climbing the
      * scaffolding" is kept for the option "He's climbing the scaffolding." but "the table" is not
@@ -2532,9 +2781,17 @@ abstract class item implements \templatable, \renderable {
 
         // Spans to keep, as [byte offset, byte length].
         $spans = [];
-        if (preg_match_all('/“[^”\n]+”|"[^"\n]+"|«[^»\n]+»|„[^“”\n]+[“”]/u', $text, $matches, PREG_OFFSET_CAPTURE)) {
-            foreach ($matches[0] as $match) {
-                $spans[] = [$match[1], strlen($match[0])];
+        $quotepatterns = [
+            '/“[^”\n]+”|"[^"\n]+"|«[^»\n]+»|„[^“”\n]+[“”]/u',
+            // Single quotes double as apostrophes, so one opens only where a word starts and closes only
+            // where a word ends. That leaves the apostrophes in "don't", "l'homme" and "the boys' toys".
+            "/(?<![\\p{L}\\p{N}])[‘’'‚](?=\\S)[^\\n]*?(?<=\\S)[’'‘](?![\\p{L}\\p{N}])|‹[^›\\n]+›/u",
+        ];
+        foreach ($quotepatterns as $quotepattern) {
+            if (preg_match_all($quotepattern, $text, $matches, PREG_OFFSET_CAPTURE)) {
+                foreach ($matches[0] as $match) {
+                    $spans[] = [$match[1], strlen($match[0])];
+                }
             }
         }
 

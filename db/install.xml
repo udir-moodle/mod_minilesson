@@ -37,7 +37,7 @@
         <FIELD NAME="viewend" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="nativelang" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="allowcontinueattempts" TYPE="int" LENGTH="1" NOTNULL="false" DEFAULT="1" SEQUENCE="false"/>
-        <FIELD NAME="nativetranslation" TYPE="int" LENGTH="2" NOTNULL="false" DEFAULT="1" SEQUENCE="false" COMMENT="Whether learners may translate item text into their native language"/>
+        <FIELD NAME="nativetranslation" TYPE="int" LENGTH="2" NOTNULL="false" DEFAULT="1" SEQUENCE="false" COMMENT="Whether native language features are on: the translate button, local translations and the learner's own native language"/>
         <FIELD NAME="nextbuttonalign" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="default" SEQUENCE="false" COMMENT="Where the next page button sits: default (end of the line) or center"/>
       </FIELDS>
       <KEYS>
@@ -144,6 +144,7 @@
             <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
             <FIELD NAME="modifiedby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
             <FIELD NAME="itemnativelangchooser" TYPE="int" LENGTH="2" NOTNULL="false" DEFAULT="0" SEQUENCE="false" COMMENT="Whether to allow users to choose their native language"/>
+            <FIELD NAME="localtranslations" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The item's native language text translated into other languages, as json keyed by a hash of the text"/>
         </FIELDS>
         <KEYS>
             <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -287,7 +288,8 @@
         <FIELD NAME="pendingcallid" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Call id of a tool awaiting approval or execution"/>
         <FIELD NAME="pendingtool" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Function name of that pending call"/>
         <FIELD NAME="pendingargs" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON arguments of the pending call, held server side so approval cannot be tampered with"/>
-        <FIELD NAME="state" TYPE="char" LENGTH="32" NOTNULL="true" DEFAULT="idle" SEQUENCE="false" COMMENT="idle, awaiting_tool, awaiting_approval or error"/>
+        <FIELD NAME="state" TYPE="char" LENGTH="32" NOTNULL="true" DEFAULT="idle" SEQUENCE="false" COMMENT="idle, awaiting_tool, awaiting_approval, awaiting_model or error"/>
+        <FIELD NAME="running" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON: the model call running in the background (interaction id, start time, metrics to record when it ends)"/>
         <FIELD NAME="toolcalls" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Tools run in the current turn, against agentmaxtoolcalls"/>
         <FIELD NAME="turncount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Turns taken, for rate limiting"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>

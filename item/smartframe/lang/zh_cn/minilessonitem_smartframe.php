@@ -25,6 +25,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['additem'] = 'SmartFrame';
-$string['item_desc'] = 'SmartFrame 项目是一个尚未开发的项目类型的占位符。';
-$string['pluginname'] = 'SmartFrame';
+$string['additem'] = 'Smart Frame';
+$string['item_desc'] = 'Smart Frame 将上传的 HTML 页面加载到 Minilesson 内的框架中。它支持响应式布局，安全可靠，并能生成成绩。可用于讲解小组件、自定义互动活动，甚至游戏。';
+$string['pluginname'] = 'Smart Frame';

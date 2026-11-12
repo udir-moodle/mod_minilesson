@@ -48,6 +48,19 @@ class import {
     /** @var array Field names in the current item that its item type does not have. */
     private $unknownfields = [];
 
+    /** @var array|null The CSV rows, read once from the CSV reader so they can be gone over more than once. */
+    private $csvrows = null;
+
+    /** @var bool Import items that fail their item type's content checks, and report them as warnings. */
+    private $skipcontentchecks = false;
+
+    /** @var bool Check the items only, without saving any of them. */
+    private $dryrun = false;
+
+    /** @var array Warning entries (see line_error()) for the current item: content check failures, when
+     * content checks are skipped, and the item type's import_warnings(). */
+    private $linewarnings = [];
+
 
     /**
      * process constructor.
@@ -184,25 +197,144 @@ class import {
         $results->imported = 0;
         $results->failed = 0;
         $results->errors = [];
+        $results->warnings = [];
 
-        if ($this->isjson) {
-            foreach ($this->itemsfromjson as $item) {
-                $this->process_and_tally($item, $results);
+        foreach ($this->fetch_items() as $item) {
+            $this->process_and_tally($item, $results);
+        }
+        return $results;
+    }
+
+    /**
+     * Import items that fail their item type's content checks, instead of refusing them.
+     *
+     * The content checks (each item type's validate_import()) are strict so that the AI that
+     * composes lessons is told what to fix and tries again. A person importing a file someone else
+     * made cannot fix it before importing, but can fix the item on the item form afterwards, which
+     * accepts the same content anyway. Items that pass with this set are listed in the results as
+     * warnings, as are the item type's import_warnings(), which never refuse an item. Faults the item
+     * could not be saved or shown with are still refused.
+     *
+     * @param bool $skip
+     */
+    public function set_skip_content_checks($skip) {
+        $this->skipcontentchecks = $skip;
+    }
+
+    /**
+     * Check every item without importing any, and list those that fail only their content checks.
+     *
+     * @param bool $contentonly list only the items that fail their content checks. When false, list every item
+     *        that would be refused, for whatever reason.
+     * @return array failure entries (see line_error()) for the items that fail their content checks
+     */
+    public function find_content_problems($contentonly = true) {
+        $problems = [];
+        $itemnum = 0;
+        $this->dryrun = true;
+        try {
+            foreach ($this->fetch_items() as $item) {
+                $itemnum++;
+                $this->unknownfields = [];
+                $outcome = $this->import_process_line($item);
+                if ($outcome !== true && (!$contentonly || !empty($outcome->contentcheck))) {
+                    $outcome->itemnum = $itemnum;
+                    $problems[] = $outcome;
+                }
             }
-        } else {
-            // Init csv import helper.
+        } finally {
+            $this->dryrun = false;
+        }
+        return $problems;
+    }
+
+    /**
+     * The items to import, as JSON items or CSV rows.
+     *
+     * The CSV reader can only be read once, so its rows are kept for a dry run followed by the import.
+     *
+     * @return array
+     */
+    private function fetch_items() {
+        if ($this->isjson) {
+            return $this->itemsfromjson;
+        }
+        if ($this->csvrows === null) {
+            $this->csvrows = [];
             $this->cir->init();
-
-            // get the header line
             $this->currentheader = $this->cir->get_columns();
-
-            while ($item = $this->cir->next()) {
-                $this->process_and_tally($item, $results);
+            while ($row = $this->cir->next()) {
+                $this->csvrows[] = $row;
             }
             $this->cir->close();
             $this->cir->cleanup(true);
         }
-        return $results;
+        return $this->csvrows;
+    }
+
+    /**
+     * Keep the items to import in the user's draft area, so a later request can import them.
+     *
+     * The items are kept as read (and translated), so the import that follows a warning does not
+     * need the file uploaded again or translated again. Draft files are removed by cron after a few days.
+     *
+     * @return int the draft item id to pass to load_from_draft()
+     */
+    public function save_to_draft() {
+        global $CFG, $USER;
+        require_once($CFG->libdir . '/filelib.php');
+
+        $payload = new \stdClass();
+        $payload->isjson = $this->isjson;
+        if ($this->isjson) {
+            $payload->items = $this->itemsfromjson;
+            $payload->files = $this->filesfromjson;
+        } else {
+            $payload->rows = $this->fetch_items();
+            $payload->header = $this->currentheader;
+        }
+
+        $draftitemid = file_get_unused_draft_itemid();
+        get_file_storage()->create_file_from_string([
+            'contextid' => \context_user::instance($USER->id)->id,
+            'component' => 'user',
+            'filearea' => 'draft',
+            'itemid' => $draftitemid,
+            'filepath' => '/',
+            'filename' => 'minilessonimport.json',
+        ], json_encode($payload));
+        return $draftitemid;
+    }
+
+    /**
+     * Load items kept by save_to_draft(), and delete the draft so they are imported only once.
+     *
+     * @param int $draftitemid
+     * @return bool false if the draft is gone (eg cleaned up by cron, or already imported)
+     */
+    public function load_from_draft($draftitemid) {
+        global $USER;
+
+        $fs = get_file_storage();
+        $usercontextid = \context_user::instance($USER->id)->id;
+        $file = $fs->get_file($usercontextid, 'user', 'draft', $draftitemid, '/', 'minilessonimport.json');
+        if (!$file) {
+            return false;
+        }
+        $payload = json_decode($file->get_content());
+        $fs->delete_area_files($usercontextid, 'user', 'draft', $draftitemid);
+        if (!$payload) {
+            return false;
+        }
+
+        if ($payload->isjson) {
+            $this->set_reader($payload, true);
+        } else {
+            $this->isjson = false;
+            $this->csvrows = $payload->rows;
+            $this->currentheader = $payload->header;
+        }
+        return true;
     }
 
     /**
@@ -214,9 +346,14 @@ class import {
     private function process_and_tally($itemdata, $results) {
         $results->total++;
         $this->unknownfields = [];
+        $this->linewarnings = [];
         $outcome = $this->import_process_line($itemdata);
         if ($outcome === true) {
             $results->imported++;
+            foreach ($this->linewarnings as $warning) {
+                $warning->itemnum = $results->total;
+                $results->warnings[] = $warning;
+            }
         } else {
             $outcome->itemnum = $results->total;
             $results->failed++;
@@ -255,6 +392,8 @@ class import {
         }
         // Structural, and belongs to the payload rather than to any one item type.
         $known['filesid'] = true;
+        // Stored translations of the item's native language text, added by an export (see export_item_as_jsonobj()).
+        $known['localtranslations'] = true;
 
         foreach (array_keys((array) $itemdata) as $field) {
             if (isset($known[$field])) {
@@ -389,17 +528,18 @@ class import {
     }
 
     /**
-     * Process one line of CSV or JSON
+     * Turn one JSON item object or CSV line into a DB ready item record, without checking or saving it.
+     *
+     * This is the part of saving an item that an import of a new item and an update of an existing one
+     * share: the field names are mapped to DB columns, values are converted (voices, layouts, booleans),
+     * fields left out get their defaults, the payload's files are attached, and the TTS dialog and
+     * passage options are packed.
      *
      * @param object|array $itemdata one JSON item object or one CSV line
-     * @return true|\stdClass true on success, or a failure entry (see line_error())
-     * @throws \coding_exception
-     * @throws \dml_exception
-     * @throws \moodle_exception
+     * @return array [\stdClass|null the record, \stdClass|null a failure entry (see line_error())]
      */
-    public function import_process_line($itemdata) {
-        global $DB, $CFG, $SESSION;
-
+    public function prepare_record($itemdata) {
+        $this->unknownfields = [];
         if ($this->isjson) {
             $itemtype = $itemdata->type ?? '';
             $itemname = $itemdata->name ?? '';
@@ -411,13 +551,13 @@ class import {
 
         // if the item type is invalid, we can't continue, just exit
         if (!$itemtypeclass) {
-            return $this->line_error($itemtype, $itemname, get_string('error:invaliditemtype', constants::M_COMPONENT));
+            return [null, $this->line_error($itemtype, $itemname, get_string('error:invaliditemtype', constants::M_COMPONENT))];
         }
 
         if ($this->isjson) {
             $line = $this->map_json_to_csv($itemdata);
             if (!empty($this->unknownfields)) {
-                return $this->line_error($itemtype, $itemname, implode(' ', $this->unknownfields));
+                return [null, $this->line_error($itemtype, $itemname, implode(' ', $this->unknownfields))];
             }
         } else {
             $line = $itemdata;
@@ -441,7 +581,7 @@ class import {
         $this->preprocesserrors = [];
         $newrecord = $this->preprocess_import_data($line, $keycolumns);
         if (!empty($this->preprocesserrors)) {
-            return $this->line_error($itemtype, $itemname, implode('; ', $this->preprocesserrors));
+            return [null, $this->line_error($itemtype, $itemname, implode('; ', $this->preprocesserrors))];
         }
 
         // set the defaults
@@ -452,6 +592,12 @@ class import {
         }
         // turn array into object
         $newrecord = (object) $newrecord;
+
+        // Local translations from an export. update_insert_item() stores them on the new item, and the save
+        // then drops any whose text the item no longer has.
+        if ($this->isjson && isset($itemdata->localtranslations)) {
+            $newrecord->localtranslations = local\localtranslations::sanitise($itemdata->localtranslations);
+        }
 
         // do files
         // if the item has a filesid attribute and that filesid holds data in filesfromjson array
@@ -481,15 +627,64 @@ class import {
             $newrecord->{constants::TTSPASSAGEOPTS} = utils::pack_ttspassageopts($newrecord);
         }
 
-        // call the itemtype specific import validation function
+        return [$newrecord, null];
+    }
+
+    /**
+     * Run the item type's content checks (its validate_import()) on a DB ready item record.
+     *
+     * @param \stdClass $newrecord the record, from prepare_record()
+     * @return \stdClass|null a failure entry (see line_error()) naming the field by its import name, or null
+     */
+    public function check_record($newrecord) {
         $error = $this->perform_import_validation($newrecord, $this->cm);
-        if ($error) {
-            $message = $error->message;
-            $collabel = $this->get_col_label($itemtypeclass, $error->col);
-            if ($collabel !== '') {
-                $message = $collabel . ': ' . $message;
+        if (!$error) {
+            return null;
+        }
+        $itemtypeclass = local\itemtype\item::get_itemtype_class($newrecord->type);
+        $message = $error->message;
+        $collabel = $this->get_col_label($itemtypeclass, $error->col);
+        if ($collabel !== '') {
+            $message = $collabel . ': ' . $message;
+        }
+        return $this->line_error($newrecord->type, $newrecord->name, $message);
+    }
+
+    /**
+     * Process one line of CSV or JSON
+     *
+     * @param object|array $itemdata one JSON item object or one CSV line
+     * @return true|\stdClass true on success, or a failure entry (see line_error())
+     * @throws \coding_exception
+     * @throws \dml_exception
+     * @throws \moodle_exception
+     */
+    public function import_process_line($itemdata) {
+        [$newrecord, $failure] = $this->prepare_record($itemdata);
+        if ($failure) {
+            return $failure;
+        }
+        $itemtype = $newrecord->type;
+        $itemtypeclass = local\itemtype\item::get_itemtype_class($itemtype);
+
+        // call the itemtype specific import validation function
+        $failure = $this->check_record($newrecord);
+        if ($failure) {
+            if (!$this->skipcontentchecks) {
+                $failure->contentcheck = true;
+                return $failure;
             }
-            return $this->line_error($itemtype, $newrecord->name, $message);
+            $this->linewarnings[] = $failure;
+        }
+
+        if ($this->dryrun) {
+            return true;
+        }
+
+        // Things worth fixing that do not stop the item working never refuse it.
+        $warnings = $itemtypeclass::import_warnings($newrecord, $this->cm);
+        if (!empty($warnings)) {
+            $this->linewarnings[] = $this->line_error($itemtype, $newrecord->name, implode(' ', $warnings));
         }
 
         // get itemorder
@@ -561,7 +756,40 @@ class import {
             return $this->allvoices[$name . '_g'];
         }
 
+        // A voice code is taken as it is, so a caller who has the code need not look up its display name.
+        foreach ($this->allvoices as $voicecode) {
+            if (strtolower($voicecode) === $name) {
+                return $voicecode;
+            }
+        }
+
         return null;
+    }
+
+    /**
+     * The display name of a stored voice code, which is what an import takes for a voice (see resolve_voice_code()).
+     *
+     * The same code can be listed under several languages with a different name in each, so the lesson's own
+     * language is looked in first, as the import does.
+     *
+     * @param string|null $voicecode the stored voice code
+     * @return string the voice's display name, or "auto" if there is no such voice
+     */
+    private function voice_name_for_code($voicecode) {
+        $voicecode = (string) $voicecode;
+        if ($voicecode === '') {
+            return 'auto';
+        }
+        $langcode = $this->moduleinstance->ttslanguage;
+        if (isset(constants::ALL_VOICES[$langcode][$voicecode])) {
+            return constants::ALL_VOICES[$langcode][$voicecode];
+        }
+        foreach (constants::ALL_VOICES as $langvoices) {
+            if (isset($langvoices[$voicecode])) {
+                return $langvoices[$voicecode];
+            }
+        }
+        return 'auto';
     }
 
     public function preprocess_import_data($line, $keycolumns) {
@@ -680,8 +908,32 @@ class import {
     }
 
     public function call_translate($itemsjson, $fromlang, $tolang) {
+        // The items' local translations are taken out before the AI sees the items, and put back after:
+        // translating them would spoil them, and they would add a lot to the request.
+        // What they hold in the language being translated into is handed to the AI as a glossary instead,
+        // so the translated text matches them and the items keep their other translations (see rekey()).
+        $items = json_decode($itemsjson);
+        $stored = [];
+        $glossary = [];
+        if (is_array($items)) {
+            $glossary = local\localtranslations::get_glossary($items, $tolang);
+            foreach ($items as $i => $item) {
+                if (is_object($item) && isset($item->localtranslations)) {
+                    $stored[$i] = $item->localtranslations;
+                    unset($item->localtranslations);
+                }
+            }
+            if ($stored) {
+                $itemsjson = json_encode($items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+        }
+
         $aigen = new aigen($this->cm);
         $prompt = "Translate any instances of language: $fromlang , into language: $tolang in the JSON string that follows." . PHP_EOL;
+        if ($glossary) {
+            $prompt .= "Where the text that follows has one of these pieces, use the translation given for it, exactly: "
+                . json_encode($glossary, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL;
+        }
         $prompt .= "Return results in the format: {translatedjson: thetranslatedjson}" . PHP_EOL;
         // Markdown generation throws off the AI and it adds line breaks, but these break JSON..
         $prompt .= 'CRITICAL: The output must be valid, minified JSON. Do NOT render Markdown formatting. All newlines inside strings MUST be escaped as \n. Do not use physical line breaks. ' . PHP_EOL;
@@ -700,7 +952,16 @@ class import {
                 }
             }
 
-            return $ret->payload->translatedjson;
+            $translated = $ret->payload->translatedjson;
+            // Put the local translations back, by position, if the AI returned every item.
+            if ($stored && is_array($translated) && count($translated) === count($items)) {
+                foreach ($stored as $i => $translations) {
+                    if (isset($translated[$i]) && is_object($translated[$i])) {
+                        $translated[$i]->localtranslations = $translations;
+                    }
+                }
+            }
+            return $translated;
         } else {
             return false;
         }
@@ -859,13 +1120,7 @@ class import {
                     break;
 
                 case 'voice':
-                    if (array_key_exists(strtolower($fieldvalue), $this->allvoices)) {
-                        $jsonvalue = $this->allvoices[strtolower($fieldvalue)];
-                    } else if (in_array(strtolower($fieldvalue) . '_g', $this->allvoices)) {
-                        $jsonvalue = $this->allvoices[strtolower($fieldvalue) . '_g'];
-                    } else {
-                        $jsonvalue = 'auto';
-                    }
+                    $jsonvalue = $this->voice_name_for_code($fieldvalue);
                     break;
 
                 case 'voiceopts':
@@ -966,8 +1221,17 @@ class import {
             }
         }//end of loop through key cols
 
+        // The item's local translations go along with it, so that a copy on another site need not make them again.
+        $translations = local\localtranslations::export_data($itemrecord->localtranslations ?? null);
+        if ($translations) {
+            $itemobj->localtranslations = $translations;
+        }
+
         // Include the files
         $itemobj->files = $thefiles;
+
+        // The item type may export some of it in its own way.
+        $itemobj = $itemtypeclass::export_item_adjust($itemobj, $itemrecord);
 
         return $itemobj;
     }//end of export item function

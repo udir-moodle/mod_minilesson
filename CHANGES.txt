@@ -1,10 +1,37 @@
-Version 1.1.61 (Build 2026102700)
-- Fixed connecting AI tools through MCP OAuth on Moodle 5.3 (the token was minted with a function Moodle 5.3 removed)
-- Use the core_external web service classes (the old global names log debugging notices on Moodle 5.3)
+Version 1.1.62 (Build 2026111200)
+- AI agents (MCP, the REST API, the AI assistant) can change items that already exist.
+- AI agents can also change a lesson's structure, media and settings.
+- the MCP server now reports the plugin release and build as its version 
+- deleting an item now also deletes the files of its answers
+- export now gives every TTS voice by its name. Import also takes a voice code
+- Added a new item Smart Frame, which can be used to show an interactive widget (probablu a widget made with AI) 
+- Fixed a bug in the AI assistant which would fails on replies that took more than about a minute
+- Added ability for audiochat AI to end a session autonomously and to deliver pictures into the conversation.
+- when Chrome's built-in translator fails to start on a device (its translation service crashes),
+  the translate button now uses the Poodll translation service instead of showing nothing
+
+Version 1.1.61 (Build 2026103100)
+- added local translations: the native language text in items (hints, card translations, matching
+  words, wordcards definitions) is translated ahead of time into the languages the admin chooses, so
+  each learner sees it in the native language they picked. 
+- the activity setting "Native Language Translation" is now "Enable native language features". 
+- imported free writing, free speaking and audio chat items with no AI feedback language now use
+  "Default native language", not en-US. 
+- fixed the fiction item offering translation when there is nothing to translate into
+- local translations go along with an item when it is exported and imported, so they are not made
+  again. 
+- the item form shows the item's local translations, and can delete them and make them again
+- fixed the spelling of "Ukrainian" in the language lists
+- added Chinese (Traditional) to the native language list
+- moved the native language settings to a new "Native language support" settings page, and gave
+  them clearer names and descriptions
+- fixed free writing, free speaking and audio chat items that use the target language (or another
+  set language) for AI feedback.
+- Fixed connecting AI tools through MCP OAuth on Moodle 5.3 
+- Use the core_external web service classes (not deprecated external lib class)
 - Removed an unused script that loaded theme_boost/tether, which Moodle 5.3 no longer has
-- Tested with Moodle 5.3
-- Replaced calls to print_error() and error(), which no longer exist in Moodle, so error pages show their message instead of a fatal error
-- Use the core_form/changechecker module after saving a modal form: the old YUI form change checker no longer exists in Moodle 5.3
+- Replaced calls to print_error() and error(), which no longer exist in Moodle 5.3
+- Use the core_form/changechecker module after saving a modal form
 
 Version 1.1.60 (Build 2026102601)
 - added Azure TTS voices for 41 languages that had three or fewer voices (not counting Whisper

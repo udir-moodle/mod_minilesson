@@ -25,6 +25,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['additem'] = 'SmartFrame';
-$string['item_desc'] = 'SmartFrame 항목은 아직 개발되지 않은 항목 유형의 자리 표시자예요.';
-$string['pluginname'] = 'SmartFrame';
+$string['additem'] = 'Smart Frame';
+$string['item_desc'] = 'Smart Frame은 업로드한 HTML 페이지를 Minilesson 안의 프레임에 불러와요. 반응형이고 안전하며, 점수를 낼 수도 있어요. 설명용 위젯, 직접 만든 대화형 활동, 게임에도 쓸 수 있어요.';
+$string['pluginname'] = 'Smart Frame';

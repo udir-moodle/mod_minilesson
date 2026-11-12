@@ -25,6 +25,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['additem'] = 'SmartFrame';
-$string['item_desc'] = 'عنصر SmartFrame هو عنصر نائب لنوع عنصر لم يتم تطويره بعد.';
-$string['pluginname'] = 'SmartFrame';
+$string['additem'] = 'Smart Frame';
+$string['item_desc'] = 'يعرض Smart Frame صفحة HTML مرفوعة داخل إطار في Minilesson. وهو متجاوب وآمن، ويمكنه إنشاء درجة. ويمكن استخدامه لأدوات الشرح التفاعلية، أو للأنشطة التفاعلية المخصصة، أو حتى للألعاب.';
+$string['pluginname'] = 'Smart Frame';
