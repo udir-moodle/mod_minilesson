@@ -14,19 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_minilesson\local\aiactions;
+namespace minilessonitem_speedreading\privacy;
+
+use core_privacy\local\metadata\null_provider;
 
 /**
- * Class inherited_action
+ * Privacy Subsystem for minilessonitem_speedreading implementing null_provider.
  *
- * @package    mod_minilesson
+ * @package    minilessonitem_speedreading
  * @copyright  2026 Justin Hunt (poodllsupport@gmail.com)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-interface inherited_action {
-
-    public function generate_prompt(): string;
-
-    public static function get_model_parameters(string $provider): array;
-
+class provider implements null_provider {
+    /**
+     * Get the language string identifier with the component's language
+     * file to explain why this plugin stores no data.
+     *
+     * @return  string
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
+    }
 }

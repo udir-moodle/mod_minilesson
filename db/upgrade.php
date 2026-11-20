@@ -1692,5 +1692,36 @@ function xmldb_minilesson_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026110800, 'minilesson');
     }
 
+    if ($oldversion < 2026111800) {
+        // The AI Manager's one setting, "Grade student submission", also sent the code editor's AI helper and the
+        // lesson bank details to the chosen provider. Each now has its own setting, so carry the old choice over.
+        $oldchoice = get_config('mod_minilesson', 'aiaction_grade_student_submission');
+        if (!empty($oldchoice) && $oldchoice != -1) {
+            foreach (['generate_code', 'lessonbank_details'] as $actiontype) {
+                if (get_config('mod_minilesson', 'aiaction_' . $actiontype) === false) {
+                    set_config('aiaction_' . $actiontype, $oldchoice, 'mod_minilesson');
+                }
+            }
+        }
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026111800, 'minilesson');
+    }
+
+    if ($oldversion < 2026112000) {
+        // Define field itemretry to be added to minilesson: learners can go back to single items from the
+        // finish page and do them again.
+        $table = new xmldb_table(constants::M_TABLE);
+        $field = new xmldb_field('itemretry', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'nextbuttonalign');
+
+        // Conditionally launch add field itemretry.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Minilesson savepoint reached.
+        upgrade_mod_savepoint(true, 2026112000, 'minilesson');
+    }
+
     return true;
 }

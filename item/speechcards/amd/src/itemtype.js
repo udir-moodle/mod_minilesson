@@ -34,6 +34,8 @@ define(['jquery',
 
             var app = {
                 passmark: 90,
+                // Targets with this many words or more are sentences: they do not get the phonetic check.
+                sentencewords: 3,
                 pointer: 1,
                 jsondata: null,
                 props: null,
@@ -238,6 +240,14 @@ define(['jquery',
                                       return;
                                 }
 
+                              // With 3 or more words, the sentence context lets speech recognition pick the right
+                              // word (flour, not flower), so the text check above is enough. The phonetic check is
+                              // too lenient for sentences, so it is only used for single words and short phrases.
+                                if (correct_clean.trim().split(/\s+/).length >= app.sentencewords) {
+                                    app.showStarRating(similarity_js);
+                                    return;
+                                }
+
                               //Similarity check by phonetics(ajax)
                                 quizhelper.checkByPhonetic(correct_clean, spoken_clean, correctphonetic, app.language).then(function (similarity_php) {
                                     if (similarity_php === false) {
@@ -326,16 +336,11 @@ define(['jquery',
 
 
                 showStarRating: function (similarity) {
-                  //how many stars code
-                    var stars = [true, true, true];
-                    if (similarity < app.passmark) {
-                        stars = [true, true, false];
-                    }
-                    if (similarity < .75) {
-                        stars = [true, false, false];
-                    }
-                    if (similarity < 0.5) {
-                        stars = [false, false, false];
+                  // Reaching the pass mark gives 5 stars, lower similarity (0-100) shares out 0 to 4 stars.
+                    var filledStars = quizhelper.passStarCount(similarity, app.passmark);
+                    var stars = [];
+                    for (var i = 0; i < 5; i++) {
+                        stars.push(i < filledStars);
                     }
 
                   //prepare stars html

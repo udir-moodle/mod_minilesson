@@ -496,6 +496,89 @@
   animation-name: flipInX;
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate__fadeIn {
+  animation-name: fadeIn;
+}
+
+/*rtl:begin:ignore*/
+@keyframes slideOutLeft {
+  to {
+    opacity: 0;
+    transform: translate3d(-40%, 0, 0);
+  }
+}
+@keyframes slideOutRight {
+  to {
+    opacity: 0;
+    transform: translate3d(40%, 0, 0);
+  }
+}
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translate3d(40%, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translate3d(-40%, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+/*rtl:end:ignore*/
+.animate__slideOutLeft {
+  animation-name: slideOutLeft;
+}
+
+.animate__slideOutRight {
+  animation-name: slideOutRight;
+}
+
+.animate__slideInRight {
+  animation-name: slideInRight;
+}
+
+.animate__slideInLeft {
+  animation-name: slideInLeft;
+}
+
+.animate__animated.animate__slideOutLeft,
+.animate__animated.animate__slideOutRight {
+  animation-duration: 350ms;
+  animation-timing-function: ease-out;
+}
+
+.animate__animated.animate__slideInRight,
+.animate__animated.animate__slideInLeft {
+  animation-duration: 600ms;
+  animation-timing-function: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate__animated.animate__fadeIn,
+  .animate__animated.animate__slideOutLeft,
+  .animate__animated.animate__slideOutRight,
+  .animate__animated.animate__slideInRight,
+  .animate__animated.animate__slideInLeft {
+    animation-duration: 1ms;
+  }
+}
 :is(.freespeaking-item-box,
 .freewriting-item-box,
 .scatter-item-box,
@@ -2455,6 +2538,17 @@ span.mod_minilesson_mu_original_postword {
   text-align: center;
 }
 
+.mod_minilesson_retrylist {
+  max-width: 600px;
+  margin: 1rem auto;
+  text-align: start;
+}
+.mod_minilesson_retrylist li {
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #dee2e6;
+}
+
 .mod_minilesson_feedback_cont {
   display: none;
 }
@@ -2547,54 +2641,112 @@ span.mod_minilesson_finishedanswer {
 }
 
 .mod_minilesson_result_div {
-  display: inline-block;
   width: 100%;
-  height: auto;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  vertical-align: top;
-  position: relative;
-  padding-top: 13px;
+  margin: 0 0 1rem;
 }
 
-.mod_minilesson_result_index {
-  font-weight: bold;
-  position: absolute;
-  left: 0;
-  top: 17px;
-  width: 36px;
-  background-color: #ccc;
-  text-align: center;
-  border-bottom: 0;
-  border-right: 0;
-  height: auto;
+.ml_result_card {
+  background-color: #FFFFFF;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  text-align: start;
+}
+
+.ml_result_header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.ml_result_index {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50px;
-  padding: 6px;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background-color: #E6E9FD;
+  color: #3C51DA;
+  font-weight: bold;
 }
 
-.mod_minilesson_result_title {
-  position: inherit;
-  top: 0;
-  right: 9px;
-  left: 29px;
-  height: auto;
+.ml_result_heading {
+  flex: 1 1 10rem;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.ml_result_toggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+button.ml_result_toggle:hover {
+  color: #3C51DA;
+}
+
+.ml_result_score {
   display: flex;
   align-items: center;
-  justify-content: left;
-  font-weight: bold;
-  justify-content: space-between;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.32);
-  padding-left: 11px;
-  font-size: 18px;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  padding-right: 16px;
+  gap: 0.5rem;
+  white-space: nowrap;
 }
 
+.ml_result_stars img {
+  width: 18px;
+  height: 18px;
+}
+
+.ml_result_grade {
+  font-weight: bold;
+}
+
+.ml_result_actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ml_result_chevron {
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  background: none;
+  color: #80859d;
+}
+.ml_result_chevron .fa {
+  transition: transform 0.2s;
+}
+.ml_result_chevron[aria-expanded=false] .fa {
+  transform: rotate(-90deg);
+}
+
+.dir-rtl .ml_result_chevron[aria-expanded=false] .fa {
+  transform: rotate(90deg);
+}
+
+.ml_result_body {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #eee;
+}
+
+@media screen and (max-width: 575px) {
+  .ml_result_score {
+    order: 10;
+    flex-basis: 100%;
+    padding-inline-start: 2.75rem;
+  }
+}
 ul.minilesson_result {
   list-style: none;
   display: flex;
@@ -2611,34 +2763,8 @@ ul.minilesson_result li {
   margin: 0 20px;
 }
 
-#itemscores .panel.panel-default {
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.32);
-  margin-left: 46px;
-}
-
-#itemscores #accordion .panel-body {
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.32);
-  padding: 11px;
-  margin-top: 12px;
-  text-align: start;
-}
-
-a.accordion-toggle.mod_minilesson_result_title {
-  text-decoration: none;
-}
-
 div#itemscores {
   margin: 0 20px;
-}
-
-.mod_minilesson_result_div .panel-group .panel-heading a:after {
-  content: "-";
-  float: right;
-  font-size: 25px;
-}
-
-.mod_minilesson_result_div .panel-group .panel-heading a.collapsed:after {
-  content: "+" !important;
 }
 
 @media screen and (max-width: 922px) {
@@ -3753,6 +3879,27 @@ span.wrongitem {
 .minilesson_langchooser .btn.minilesson_langchooser_btn:focus {
   outline: none;
   box-shadow: 0 0 0 3px #E6E9FD;
+}
+
+.ml_pendingdots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 0;
+}
+.ml_pendingdots .ml_pendingdot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background-color: #506DFF;
+  animation: minilesson_bounce 1s infinite;
+}
+.ml_pendingdots .ml_pendingdot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.ml_pendingdots .ml_pendingdot:nth-child(3) {
+  animation-delay: 0.3s;
 }
 
 .minilesson_audiochat_box {
@@ -8313,6 +8460,10 @@ div.mcaudiotranscript {
   font-weight: bold;
   margin: 1rem auto 0;
   text-align: center;
+}
+
+.mcq_questionsbox {
+  overflow-x: hidden;
 }
 
 .mcq_progressdots {

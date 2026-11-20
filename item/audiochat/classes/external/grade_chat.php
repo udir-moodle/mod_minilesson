@@ -29,10 +29,10 @@ use mod_minilesson\utils;
 /**
  * Grades a finished audio chat from its transcript.
  *
- * Used by the Gemini driver (Gemini and Cloud Poodll providers). The Gemini Live models
- * can only reply in audio, so a grade asked for inside the live session comes back as
- * a transcript of spoken JSON, which loses its structure. So the transcript is graded
- * by a text model on Cloud Poodll instead.
+ * Used by every chat provider's driver when the chat ends. Grading the transcript here,
+ * rather than inside the live session, gives the same grading whichever voice provider
+ * ran the chat, and sends it where the admin chose in the MiniLesson AI Manager's
+ * "Grade student submission" setting: Cloud Poodll by default, or a Moodle AI provider.
  *
  * The prompt is built here from the item, never taken from the browser, so the call
  * cannot be used to put arbitrary prompts to the AI.
@@ -48,7 +48,8 @@ class grade_chat extends external_api {
     /** @var int Longest transcript, in characters, we will send for grading. */
     const MAX_TRANSCRIPT_LENGTH = 40000;
 
-    /** @var int How many times to ask Cloud Poodll before giving up. */
+    /** @var int How many times to ask Cloud Poodll before giving up. A Moodle AI provider is asked once,
+     * because the AI manager already tries a bad reply twice. */
     const ATTEMPTS = 2;
 
     /**
@@ -121,16 +122,11 @@ class grade_chat extends external_api {
             'feedbacklanguage' => $itemtype->fetch_student_native_language(),
             'targetlanguage' => $moduleinstance->ttslanguage,
         ];
-        $cpparams = [
-            'action' => 'grade_chat',
-            'subject' => $transcript,
-            'prompt' => json_encode($instructions),
-            'language' => $moduleinstance->ttslanguage,
-            'region' => $moduleinstance->region,
-        ];
+        $aimanager = new aimanager($context->id, $moduleinstance->region, $moduleinstance->ttslanguage);
+        $attempts = aimanager::uses_moodle_ai(aimanager::OPTION_GRADE_STUDENT_SUBMISSION) ? 1 : self::ATTEMPTS;
 
-        for ($attempt = 1; $attempt <= self::ATTEMPTS; $attempt++) {
-            $grade = self::parse_grade(aimanager::call_cp_api($cpparams));
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+            $grade = self::parse_grade($aimanager->grade_chat($transcript, $instructions));
             if ($grade) {
                 return ['success' => true] + $grade;
             }
@@ -158,7 +154,7 @@ class grade_chat extends external_api {
     }
 
     /**
-     * Pull a usable grade out of a Cloud Poodll reply.
+     * Pull a usable grade out of the grading reply.
      *
      * @param mixed $response the decoded reply, or null/false if the call failed
      * @return array|null score, gradeexplanation and feedback, or null if unusable
@@ -167,15 +163,51 @@ class grade_chat extends external_api {
         if (!$response || !isset($response->returnCode) || $response->returnCode != '0') {
             return null;
         }
-        $grade = json_decode((string) ($response->returnMessage ?? ''));
-        if (!$grade || !isset($grade->score) || !is_numeric($grade->score)) {
+        $message = trim((string) ($response->returnMessage ?? ''));
+        $grade = json_decode($message);
+        if (!is_object($grade)) {
+            // The model may wrap the JSON in a code fence or a sentence, so try the outermost braces.
+            $start = strpos($message, '{');
+            $end = strrpos($message, '}');
+            if ($start !== false && $end > $start) {
+                $grade = json_decode(substr($message, $start, $end - $start + 1));
+            }
+        }
+        if (!is_object($grade) || !isset($grade->score)) {
+            return null;
+        }
+        $score = self::parse_score($grade->score);
+        if ($score === null) {
             return null;
         }
         return [
-            'score' => max(0, min(100, (int) round((float) $grade->score))),
+            'score' => max(0, min(100, (int) round($score))),
             'gradeexplanation' => (string) ($grade->gradeexplanation ?? ''),
             'feedback' => (string) ($grade->feedback ?? ''),
         ];
+    }
+
+    /**
+     * Read the score the model gave, allowing the forms a teacher's own grading instructions
+     * tend to ask for: "85", 85, "85%", "85 / 100".
+     *
+     * Anything else, such as a sum like "(80*0.35)+(90*0.35)", is refused rather than guessed,
+     * because the first number in it is not the score.
+     *
+     * @param mixed $score the score field from the model's reply
+     * @return float|null the score, or null if it cannot be read
+     */
+    protected static function parse_score($score): ?float {
+        if (is_int($score) || is_float($score)) {
+            return (float) $score;
+        }
+        if (!is_string($score)) {
+            return null;
+        }
+        if (preg_match('~^\s*(\d+(?:\.\d+)?)\s*(?:%|/\s*100)?\s*$~', $score, $matches)) {
+            return (float) $matches[1];
+        }
+        return null;
     }
 
     /**
